@@ -1,0 +1,11 @@
+# Dependency directories
+node_modules/
+
+# Optional REPL history
+.node_repl_history
+
+# dotenv environment variable files
+.env
+
+# the true price of a pretty laptop
+**/.DS_Store
