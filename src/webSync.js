@@ -4,13 +4,13 @@ import { manageCert } from './manageCert.js'
 import { createServer as createHttpsServer } from 'https'
 import { createServer as createHttpServer } from 'http'
 import { WebSocketServer } from 'ws'
-import { TurtleBranchMultiplexer } from './lib/turtle/connections/TurtleBranchMultiplexer.js'
+import { TurtleBranchMultiplexer } from '../lib/turtle/connections/TurtleBranchMultiplexer.js'
 import { randomUUID } from 'crypto'
-import { logDebug, logInfo, logError } from './lib/utils/logger.js'
-import { handleRedirect } from './lib/utils/handleRedirect.js'
+import { logDebug, logInfo, logError } from '../lib/utils/logger.js'
+import { handleRedirect } from '../lib/utils/handleRedirect.js'
 
 /**
- * @typedef {import('./lib/turtle/connections/TurtleDB.js').TurtleDB} TurtleDB
+ * @typedef {import('../lib/turtle/connections/TurtleDB.js').TurtleDB} TurtleDB
  */
 
 const uuid = randomUUID()

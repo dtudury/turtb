@@ -1,14 +1,14 @@
 import { join } from 'path'
 import { compile } from '@gerhobbelt/gitignore-parser'
-import { linesToString } from './lib/utils/fileTransformer.js'
-import { logInfo } from './lib/utils/logger.js'
-import { THROW } from './lib/turtle/TurtleDictionary.js'
+import { linesToString } from '../lib/utils/fileTransformer.js'
+import { logInfo } from '../lib/utils/logger.js'
+import { THROW } from '../lib/turtle/TurtleDictionary.js'
 import { equalFileObjects, proxyFolder, UPDATES_HANDLER } from './proxyFolder.js'
 
 /**
- * @typedef {import('./lib/turtle/connections/TurtleDB.js').TurtleDB} TurtleDB
- * @typedef {import('./lib/turtle/Signer.js').Signer} Signer
- * @typedef {import('./lib/turtle/Workspace.js').Workspace} Workspace
+ * @typedef {import('../lib/turtle/connections/TurtleDB.js').TurtleDB} TurtleDB
+ * @typedef {import('../lib/turtle/Signer.js').Signer} Signer
+ * @typedef {import('../lib/turtle/Workspace.js').Workspace} Workspace
  */
 
 const gitFilteredFilenames = (filesObject = {}, turtleDBFolder, gitignoreContent) => {

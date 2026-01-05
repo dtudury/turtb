@@ -1,7 +1,7 @@
 import { S3Client } from '@aws-sdk/client-s3'
 import { S3Updater } from './S3Updater.js'
-import { TurtleBranchUpdater } from './lib/turtle/connections/TurtleBranchUpdater.js'
-import { logDebug } from './lib/utils/logger.js'
+import { TurtleBranchUpdater } from '../lib/turtle/connections/TurtleBranchUpdater.js'
+import { logDebug } from '../lib/utils/logger.js'
 
 export async function s3Sync (turtleDB, recaller, endpoint, region, accessKeyId, secretAccessKey, bucket) {
   /** @type {import('@aws-sdk/client-s3').S3ClientConfig} */

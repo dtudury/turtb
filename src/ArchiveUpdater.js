@@ -1,12 +1,12 @@
 import { join } from 'path'
-import { AbstractUpdater } from './lib/turtle/connections/AbstractUpdater.js'
+import { AbstractUpdater } from '../lib/turtle/connections/AbstractUpdater.js'
 import { getExistenceLength } from './getExistenceLength.js'
 import { access, mkdir, readFile, writeFile } from 'fs/promises'
-import { verifyCommitU8a } from './lib/turtle/Signer.js'
+import { verifyCommitU8a } from '../lib/turtle/Signer.js'
 
 /**
  * @typedef {import('@aws-sdk/client-s3').S3Client} S3Client
- * @typedef {import('./lib/utils/Recaller.js').Recaller} Recaller
+ * @typedef {import('../lib/utils/Recaller.js').Recaller} Recaller
  */
 
 export class ArchiveUpdater extends AbstractUpdater {

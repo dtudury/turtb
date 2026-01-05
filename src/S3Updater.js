@@ -1,11 +1,11 @@
 import { GetObjectCommand, ListObjectsV2Command, PutObjectCommand } from '@aws-sdk/client-s3'
-import { AbstractUpdater } from './lib/turtle/connections/AbstractUpdater.js'
-import { verifyCommitU8a } from './lib/turtle/Signer.js'
+import { AbstractUpdater } from '../lib/turtle/connections/AbstractUpdater.js'
+import { verifyCommitU8a } from '../lib/turtle/Signer.js'
 import { getExistenceLength } from './getExistenceLength.js'
 
 /**
  * @typedef {import('@aws-sdk/client-s3').S3Client} S3Client
- * @typedef {import('./lib/utils/Recaller.js').Recaller} Recaller
+ * @typedef {import('../lib/utils/Recaller.js').Recaller} Recaller
  */
 
 export class S3Updater extends AbstractUpdater {

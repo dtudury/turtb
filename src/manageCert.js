@@ -1,7 +1,7 @@
 import { dirname } from 'path'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { createCA, createCert } from 'mkcert'
-import { logError } from './lib/utils/logger.js'
+import { logError } from '../lib/utils/logger.js'
 
 export async function manageCert (fullcertpath) {
   try {

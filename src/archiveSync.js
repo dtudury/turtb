@@ -1,10 +1,10 @@
-import { TurtleBranchUpdater } from './lib/turtle/connections/TurtleBranchUpdater.js'
+import { TurtleBranchUpdater } from '../lib/turtle/connections/TurtleBranchUpdater.js'
 import { ArchiveUpdater } from './ArchiveUpdater.js'
 
 /**
- * @typedef {import('./lib/turtle/connections/TurtleDB.js').TurtleBranchStatus} TurtleBranchStatus
- * @typedef {import('./lib/turtle/connections/TurtleDB.js').TurtleDB} TurtleDB
- * @typedef {import('./lib/utils/Recaller.js').Recaller} Recaller
+ * @typedef {import('../lib/turtle/connections/TurtleDB.js').TurtleBranchStatus} TurtleBranchStatus
+ * @typedef {import('../lib/turtle/connections/TurtleDB.js').TurtleDB} TurtleDB
+ * @typedef {import('../lib/utils/Recaller.js').Recaller} Recaller
  */
 
 /**

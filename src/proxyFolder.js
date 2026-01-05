@@ -1,8 +1,8 @@
 import { mkdirSync, readdirSync, readFileSync, symlinkSync, unlinkSync, writeFileSync, readlinkSync, lstatSync, rmdirSync } from 'fs'
 import { dirname, join, relative } from 'path'
-import { logError } from './lib/utils/logger.js'
-import { deepEqual } from './lib/utils/deepEqual.js'
-import { Recaller } from './lib/utils/Recaller.js'
+import { logError } from '../lib/utils/logger.js'
+import { deepEqual } from '../lib/utils/deepEqual.js'
+import { Recaller } from '../lib/utils/Recaller.js'
 import { subscribe } from '@parcel/watcher'
 
 export const isLinesOfTextExtension = path => path.match(/\.(html|css|js|svg|txt|gitignore|env|node_repl_history)$/)
@@ -26,7 +26,7 @@ const decodeBufferAsFileObject = (buffer, path) => {
   try {
     return JSON.parse(str)
   } catch (err) {
-    logError(() => console.error(err))
+    logError(() => console.error(`error parsing (file:${path})`))
     return str
   }
 }

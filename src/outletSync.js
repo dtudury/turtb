@@ -1,6 +1,6 @@
 import { createServer } from 'net'
-import { TurtleBranchMultiplexer } from './lib/turtle/connections/TurtleBranchMultiplexer.js'
-import { logError, logWarn, logInfo } from './lib/utils/logger.js'
+import { TurtleBranchMultiplexer } from '../lib/turtle/connections/TurtleBranchMultiplexer.js'
+import { logError, logWarn, logInfo } from '../lib/utils/logger.js'
 
 export async function outletSync (turtleDB, port) {
   let connectionCount = 0
