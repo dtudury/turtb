@@ -4,9 +4,7 @@ import { logError } from '../lib/utils/logger.js'
 import { deepEqual } from '../lib/utils/deepEqual.js'
 import { Recaller } from '../lib/utils/Recaller.js'
 import { subscribe } from '@parcel/watcher'
-
-export const isLinesOfTextExtension = path => path.match(/\.(html|css|js|svg|txt|gitignore|env|node_repl_history)$/)
-export const isJSONExtension = path => path.match(/\.(json)$/)
+import { BINARY_FILE, JSON_FILE, pathToType } from '../lib/utils/fileTransformer.js'
 
 export const encodeTextFile = object => {
   if (!object || typeof object !== 'object') throw new Error('encodeFile requires an object')
@@ -17,18 +15,18 @@ export const encodeTextFile = object => {
 const decodeBufferAsFileObject = (buffer, path) => {
   if (!buffer?.isBuffer?.() && !(buffer instanceof Uint8Array)) return buffer
   const uint8Array = new Uint8Array(buffer)
-  const isLinesOfText = isLinesOfTextExtension(path)
-  const isJSON = isJSONExtension(path)
-  if (!isLinesOfText && !isJSON) return uint8Array
+  const type = pathToType(path)
+  if (type === BINARY_FILE) return uint8Array
   const decoder = new TextDecoder('utf-8')
   const str = decoder.decode(uint8Array)
-  if (isLinesOfText) return str.split(/\r?\n/)
-  try {
-    return JSON.parse(str)
-  } catch (err) {
-    logError(() => console.error(`error parsing (file:${path})`))
-    return str
+  if (type === JSON_FILE) {
+    try {
+      return JSON.parse(str)
+    } catch (err) {
+      logError(() => console.error(`error parsing (file:${path})`))
+    }
   }
+  return str.split(/\r?\n/)
 }
 
 export const equalFileObjects = (a, b, path) => {
