@@ -1,6 +1,6 @@
 {
   "name": "turtb",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "binary for turtledb projects",
   "repository": "git@github.com:dtudury/turtb.git",
   "author": "David Tudury <david.tudury@gmail.com>",
