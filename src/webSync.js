@@ -28,7 +28,7 @@ export async function webSync (port, basePublicKey, turtleDB, https, insecure, c
   const root = join(process.cwd(), basePublicKey)
   const app = express()
   app.use((req, _res, next) => {
-    logDebug(() => console.log(req.method, req.url, req.originalUrl))
+    logDebug(() => console.log(req.method, req.url))
     next()
   })
   app.use(async (req, res, next) => {
@@ -37,11 +37,12 @@ export async function webSync (port, basePublicKey, turtleDB, https, insecure, c
       res.send(JSON.stringify({ workspace: { uuid, root } }))
       return
     }
-    handleRedirect(req.url, +req.params.address, turtleDB, basePublicKey, turtleDBFolder, href => {
+    handleRedirect(req.path, +req.params.address, turtleDB, basePublicKey, turtleDBFolder, href => {
       res.redirect(302, href)
     }, (type, body) => {
       if (!body) return next()
       res.type(type)
+      res.cookie('cpk', basePublicKey)
       res.send(body)
     })
   })
