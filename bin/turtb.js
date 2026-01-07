@@ -4,7 +4,7 @@ import { readFileSync } from 'fs'
 import { start } from 'repl'
 import { Option, program } from 'commander'
 import { keyInSelect, keyInYN, question, questionNewPassword } from 'readline-sync'
-import { LOG_LEVELS, logDebug, logError, logInfo, logSilly, setLogLevel } from '../lib/utils/logger.js'
+import { LOG_LEVELS, logDebug, logError, logInfo, setLogLevel } from '../lib/utils/logger.js'
 import { Signer } from '../lib/turtle/Signer.js'
 import { TurtleDB } from '../lib/turtle/connections/TurtleDB.js'
 import { Recaller } from '../lib/utils/Recaller.js'
@@ -22,6 +22,7 @@ import { proxyFolder } from '../src/proxyFolder.js'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 
+const startTime = new Date()
 const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url)))
 
 const defaultWebPort = 8080
@@ -209,22 +210,27 @@ if (options.envFile) {
   Object.assign(options, program.opts()) // update options with new env vars
 }
 setLogLevel(options.verbose)
-options.turtlename ||= question('  Turtlename: ')
-options.username ||= question('  Username: ')
+logInfo(() => console.log())
+logInfo(() => console.log(`\x1b[32mturtb v${version}\x1b[0m`))
+logInfo(() => console.log(`\x1b[34m${startTime.toLocaleString()} \x1b[2m(${startTime.toISOString()})\x1b[0m`))
+logInfo(() => console.log())
+options.turtlename ||= question('Turtlename: ')
+options.username ||= question('Username: ')
 const turtlename = options.turtlename
 const username = options.username
-const signer = new Signer(username, options.password || questionNewPassword('  Password [ATTENTION!: Backspace won\'t work here]: ', { min: 4, max: 999 }))
+const signer = new Signer(username, options.password || questionNewPassword('Password [ATTENTION!: Backspace won\'t work here]: ', { min: 4, max: 999 }))
 const publicKey = (await signer.makeKeysFor(turtlename)).publicKey
 logInfo(() => {
   const maxLength = Math.max(turtlename.length, username.length, publicKey.length)
   console.log(`\x1b[35m
-    ╭══════════════════════╤══${'═'.repeat(maxLength)}══┓
-    │          TURTLENAME: │  \x1b[0m${turtlename}${' '.repeat(maxLength - turtlename.length)}\x1b[35m  ┃
-    ├──────────────────────┼──${'─'.repeat(maxLength)}──┨
-    │            USERNAME: │  \x1b[0m${username}${' '.repeat(maxLength - username.length)}\x1b[35m  ┃
-    ├──────────────────────┼──${'─'.repeat(maxLength)}──┨
-    │  COMPACT PUBLIC KEY: │  \x1b[0m${publicKey}${' '.repeat(maxLength - publicKey.length)}\x1b[35m  ┃
-    ╰━━━━━━━━━━━━━━━━━━━━━━┷━━${'━'.repeat(maxLength)}━━┛\x1b[0m`)
+    ╭─────────────────────────${'─'.repeat(maxLength)}──╮
+    ╞══════════════════════╤══${'═'.repeat(maxLength)}══╡
+    │          TURTLENAME: │  \x1b[0m${turtlename}${' '.repeat(maxLength - turtlename.length)}\x1b[35m  │
+    ├──────────────────────┼──${'─'.repeat(maxLength)}──┤
+    │            USERNAME: │  \x1b[0m${username}${' '.repeat(maxLength - username.length)}\x1b[35m  │
+    ├──────────────────────┼──${'─'.repeat(maxLength)}──┤
+    │  COMPACT PUBLIC KEY: │  \x1b[0m${publicKey}${' '.repeat(maxLength - publicKey.length)}\x1b[35m  │
+    ╰━━━━━━━━━━━━━━━━━━━━━━┷━━${'━'.repeat(maxLength)}━━╯\x1b[0m`)
 })
 
 let initOption = -1
