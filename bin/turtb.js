@@ -248,9 +248,6 @@ if (!willSync) {
   if (keyInYN(`Start localhost web server(${optionsByName.webPort.envVar})?`)) {
     options.webPort = optionsByName.webPort.presetArg
   }
-  if (keyInYN(`Mirror local files as state (${optionsByName.fsMirror.envVar})?`)) {
-    options.fsMirror = optionsByName.fsMirror.presetArg
-  }
   if (keyInYN(`Sync with remote turtle (${optionsByName.remoteHost.envVar} and ${optionsByName.remotePort.envVar})?`)) {
     options.remoteHost = optionsByName.remoteHost.presetArg
     options.remotePort = optionsByName.remotePort.presetArg
