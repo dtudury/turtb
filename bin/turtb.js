@@ -94,11 +94,13 @@ program
   .addOption(
     new Option('-i, --interactive', 'flag to start repl')
       .default(false)
+      .preset(true)
       .env(optionNameToEnvName.interactive)
   )
   .addOption(
     new Option('-a, --archive', 'save all turtles to files by public key')
       .default(false)
+      .preset(true)
       .env(optionNameToEnvName.archive)
   )
   .addOption(
@@ -132,6 +134,7 @@ program
   .addOption(
     new Option('--web-insecure', '(local dev) allow unauthorized for web')
       .default(false)
+      .preset(true)
       .env(optionNameToEnvName.webInsecure)
       .helpGroup('Web Server:')
   )
@@ -212,7 +215,7 @@ if (options.envFile) {
 setLogLevel(options.verbose)
 logInfo(() => console.log())
 logInfo(() => console.log(`\x1b[32mturtb v${version}\x1b[0m`))
-logInfo(() => console.log(`\x1b[34m${startTime.toLocaleString()} \x1b[2m(${startTime.toISOString()})\x1b[0m`))
+logInfo(() => console.log(`\x1b[96m${startTime.toLocaleString()} \x1b[2m(${startTime.toISOString()})\x1b[0m`))
 logInfo(() => console.log())
 options.turtlename ||= question('Turtlename: ')
 options.username ||= question('Username: ')

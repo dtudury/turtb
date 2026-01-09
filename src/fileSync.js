@@ -44,7 +44,7 @@ const replicateFiles = (a, b, turtleDBFolder, applyGitFilter) => {
   return touched
 }
 
-const syncModule = (turtleBranch, moduleFolder, folderFilesObject, turtleDBFolder) => {
+const syncModule = (turtleBranch, moduleFolder, folderFilesObject, turtleDBFolder, applyGitFilter) => {
   // return
   const setModuleFiles = moduleFilesObject => {
     const folderFilesObjectCopy = {}
@@ -56,7 +56,7 @@ const syncModule = (turtleBranch, moduleFolder, folderFilesObject, turtleDBFolde
     Object.keys(moduleFilesObject).forEach(filename => {
       folderFilesObjectCopy[join(moduleFolder, filename)] = moduleFilesObject[filename]
     })
-    replicateFiles(folderFilesObjectCopy, folderFilesObject, turtleDBFolder, false)
+    replicateFiles(folderFilesObjectCopy, folderFilesObject, turtleDBFolder, applyGitFilter)
   }
   const turtleWatcher = async () => {
     const moduleFilesObject = turtleBranch.lookup('document', 'value')
@@ -102,6 +102,8 @@ export async function fileSync (name, turtleDB, signer, folder = '.', resolve = 
     }
   }
 
+  syncModule(workspace, folder, folderFilesObject, turtleDBFolder, true)
+
   const syncModulesBySymlink = {}
   const addSymlink = symlink => {
     if (!syncModulesBySymlink[symlink]) {
@@ -111,7 +113,7 @@ export async function fileSync (name, turtleDB, signer, folder = '.', resolve = 
       (async () => {
         const publicKey = symlink.match(/\/([0-9a-z]{40,50})$/)?.[1]
         const turtleBranch = await turtleDB.summonBoundTurtleBranch(publicKey)
-        unsync &&= await syncModule(turtleBranch, symlink, folderFilesObject, turtleDBFolder) // &&= in case it got cancelled before the summon completed
+        unsync &&= await syncModule(turtleBranch, symlink, folderFilesObject, turtleDBFolder, false) // &&= in case it got cancelled before the summon completed
       })()
       syncModulesBySymlink[symlink] = { count: 0, unsync }
     }
