@@ -1,5 +1,5 @@
 import { mkdirSync, readdirSync, readFileSync, symlinkSync, unlinkSync, writeFileSync, readlinkSync, lstatSync, rmdirSync } from 'fs'
-import { dirname, join, relative } from 'path'
+import { dirname, join, matchesGlob, relative } from 'path'
 import { logError } from '../lib/utils/logger.js'
 import { deepEqual } from '../lib/utils/deepEqual.js'
 import { Recaller } from '../lib/utils/Recaller.js'
@@ -43,7 +43,7 @@ export const UPDATES_HANDLER = Symbol('UPDATES_HANDLER')
  * @param {function(string, any, any):void)}
  * @returns {Proxy}
  */
-export const proxyFolder = (folder, recaller = new Recaller(folder), updatesHandler) => {
+export const proxyFolder = (folder, recaller = new Recaller(folder), updatesHandler, ignoreGlobs = ['**/.git/**', '**/node_modules/**']) => {
   const cleanEmptyDir = path => {
     if (['', '.', '/'].includes(path)) return
     const childPath = join(folder, path)
@@ -122,11 +122,12 @@ export const proxyFolder = (folder, recaller = new Recaller(folder), updatesHand
   const readFileObjects = folder => {
     // don't use recursive option because it follows symlinks
     readdirSync(folder, { withFileTypes: true }).forEach(dirent => {
-      if (dirent.name.startsWith('.git/') || dirent.name.startsWith('node_modules/')) return
+      const path = join(dirent.parentPath, dirent.name)
+      if (ignoreGlobs.some(glob => matchesGlob(path, glob))) return
       if (!dirent.isDirectory()) {
-        readFileObject(join(dirent.parentPath, dirent.name))
+        readFileObject(path)
       } else {
-        readFileObjects(join(folder, dirent.name))
+        readFileObjects(path)
       }
     })
   }
@@ -185,6 +186,7 @@ export const proxyFolder = (folder, recaller = new Recaller(folder), updatesHand
     if (err) throw err
     events.forEach(({ path }) => {
       const filename = relative(folder, path)
+      if (ignoreGlobs.some(glob => matchesGlob(path, glob))) return
       handleFileChange(filename)
     })
   })
