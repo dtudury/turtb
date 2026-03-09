@@ -5,6 +5,7 @@ import { logInfo } from '../lib/utils/logger.js'
 import { THROW } from '../lib/turtle/TurtleDictionary.js'
 import { equalFileObjects, proxyFolder, UPDATES_HANDLER } from './proxyFolder.js'
 import { IGNORE_ACCESS } from '../lib/utils/Recaller.js'
+import { TurtleBranch } from '../lib/turtle/TurtleBranch.js'
 
 /**
  * @typedef {import('../lib/turtle/connections/TurtleDB.js').TurtleDB} TurtleDB
@@ -45,6 +46,14 @@ const replicateFiles = (a, b, turtleDBFolder, applyGitFilter) => {
   return touched
 }
 
+/**
+ * @param {import('../lib/turtle/TurtleBranch.js').TurtleBranch} turtleBranch
+ * @param {string} moduleFolder
+ * @param {Object} folderFilesObject { filenames: files as values }
+ * @param {*} turtleDBFolder
+ * @param {*} applyGitFilter
+ * @returns
+ */
 const syncModule = (turtleBranch, moduleFolder, folderFilesObject, turtleDBFolder, applyGitFilter) => {
   // only handle commit changes, not fs changes
   const folderFilesCopy = turtleBranch.recaller.call(() => ({ ...folderFilesObject }), IGNORE_ACCESS)
@@ -57,8 +66,9 @@ const syncModule = (turtleBranch, moduleFolder, folderFilesObject, turtleDBFolde
       })
     Object.keys(moduleFilesObject).forEach(filename => {
       folderFilesObjectCopy[join(moduleFolder, filename)] = moduleFilesObject[filename]
+      console.log(`\n${filename}\n`)
     })
-    replicateFiles(folderFilesObjectCopy, folderFilesCopy, turtleDBFolder, applyGitFilter)
+    replicateFiles(folderFilesObjectCopy, folderFilesObject, turtleDBFolder, applyGitFilter)
   }
   const turtleWatcher = async () => {
     const moduleFilesObject = turtleBranch.lookup('document', 'value')

@@ -3,7 +3,6 @@ import { Turtle } from './Turtle.js'
 
 export class Syncer extends Turtle {
   #signedTurtlesByPublicKey = {}
-  #updatesByPublicKey = {}
   /**
    * @param {Turtle} turtle
    */
@@ -33,6 +32,6 @@ export class Syncer extends Turtle {
   }
 
   #update (publicKeyHex, byteLength) {
-    this.syncee.decode()
+
   }
 }

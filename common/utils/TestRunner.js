@@ -1,4 +1,4 @@
-// import { TurtleDictionary } from '../turtle/TurtleDictionary.js'
+import { TurtleDictionary } from '../../lib/turtle/TurtleDictionary.js'
 import { Assert } from './Assert.js'
 import { logError } from './logger.js'
 import { Recaller } from './Recaller.js'
@@ -61,7 +61,7 @@ export class TestRunner {
     this.#runState = WAITING
     this.assert = new Assert(this)
     this.runIndex = 0
-    // this.upserter = new TurtleDictionary(name, recaller)
+    this.upserter = new TurtleDictionary(name, recaller)
   }
 
   async run () {

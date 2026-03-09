@@ -1,0 +1,35 @@
+{
+  "steps": [
+    {
+      "description": "rework render to reuse dom elements as much as possible",
+      "due": "March 12"
+    },
+    {
+      "description": "syncing",
+      "due": "March 19"
+    },
+    {
+      "description": "fs",
+      "due": "March 26"
+    },
+    {
+      "description": "web",
+      "due": "April 3"
+    },
+    {
+      "description": "s3 and local backup",
+      "due": "April 10"
+    },
+    {
+      "description": "demo/cleanup",
+      "due": "April 24"
+    },
+    {
+      "description": "jira",
+      "due": "May 1"
+    },
+    {
+      "description": ""
+    }
+  ]
+}
