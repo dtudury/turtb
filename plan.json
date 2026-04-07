@@ -1,32 +1,40 @@
 {
+  "started": "March 5",
+  "issues": [
+    {
+      "description": "files momentarily twitch back to pre-edit after saving (issue with fileSync). also crashes when syncing"
+    }
+  ],
   "steps": [
     {
       "description": "rework render to reuse dom elements as much as possible",
-      "due": "March 12"
+      "state": "in progress",
+      "estimate": 7,
+      "due": "2026 March 12"
     },
     {
       "description": "syncing",
-      "due": "March 19"
+      "estimate": 7
     },
     {
       "description": "fs",
-      "due": "March 26"
+      "estimate": 7
     },
     {
       "description": "web",
-      "due": "April 3"
+      "estimate": 7
     },
     {
       "description": "s3 and local backup",
-      "due": "April 10"
+      "estimate": 7
     },
     {
       "description": "demo/cleanup",
-      "due": "April 24"
+      "estimate": 14
     },
     {
       "description": "jira",
-      "due": "May 1"
+      "estimate": 14
     },
     {
       "description": ""

@@ -52,6 +52,7 @@ export class ArchiveUpdater extends AbstractUpdater {
       const path = join(this.path, this.publicKey)
       this.#lengthPromise = (async () => {
         if (!(await getExists())) {
+          console.log('\n\n\n')
           await mkdir(path, { recursive: true })
         }
         this.#length = await getExistenceLength(getExists)
@@ -89,6 +90,7 @@ export class ArchiveUpdater extends AbstractUpdater {
         }
         const verified = await verifyCommitU8a(this.publicKey, uint8Array, previousUint8Array)
         if (!verified) throw new Error('bad signature')
+        console.log(this.indexToPath(this.#length), uint8Array, 'binary')
         await writeFile(this.indexToPath(this.#length), uint8Array, 'binary')
         ++this.#length
         return uint8Array

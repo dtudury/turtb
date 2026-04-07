@@ -1,3 +1,5 @@
+import { HxInput } from './types/HxInput.js'
+
 const _voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr'])
 const END = Symbol('end')
 
@@ -55,7 +57,7 @@ function _skipWhiteSpace (arr) {
 
 function _readIf (arr, str) {
   if (!str.length) {
-    str = [str]
+    throw new Error('What uses this path?')
   }
   const out = []
   for (let i = 0; i < str.length; i++) {
@@ -198,7 +200,7 @@ function _decodeElements (arr, closingTag) {
  * @param  {...any} values
  * @returns {Array.<>}
  */
-export function dm (strings, ...values) {
+export function hx (strings, ...values) {
   const ss = [strings[0].split('')]
   for (let i = 0; i < values.length; i++) {
     ss.push({ value: values[i], isValue: true })
@@ -206,5 +208,7 @@ export function dm (strings, ...values) {
   }
   const arr = [].concat.apply([], ss)
   arr.i = 0
+  const hxInput = new HxInput(strings, values)
+  console.log(hxInput.decodeElements())
   return _decodeElements(arr, null)
 }

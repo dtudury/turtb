@@ -5,7 +5,6 @@ import { logInfo } from '../lib/utils/logger.js'
 import { THROW } from '../lib/turtle/TurtleDictionary.js'
 import { equalFileObjects, proxyFolder, UPDATES_HANDLER } from './proxyFolder.js'
 import { IGNORE_ACCESS } from '../lib/utils/Recaller.js'
-import { TurtleBranch } from '../lib/turtle/TurtleBranch.js'
 
 /**
  * @typedef {import('../lib/turtle/connections/TurtleDB.js').TurtleDB} TurtleDB
@@ -30,7 +29,6 @@ const replicateFiles = (a, b, turtleDBFolder, applyGitFilter) => {
   aFilenames.forEach(key => {
     if (!equalFileObjects(b[key], a[key], key)) {
       // console.log(b[key], a[key])
-      console.log(`setting b[${key}], replace:${!!b[key]}`)
       b[key] = a[key]
       touched = true
     }
@@ -38,7 +36,6 @@ const replicateFiles = (a, b, turtleDBFolder, applyGitFilter) => {
   bFilenames = applyGitFilter ? gitFilteredFilenames(b, turtleDBFolder) : Object.keys(b) // after possible .gitignore update
   bFilenames.forEach(key => {
     if (!aFilenames.includes(key)) {
-      console.log(`deleting b[${key}]`)
       delete b[key]
       touched = true
     }
@@ -66,7 +63,6 @@ const syncModule = (turtleBranch, moduleFolder, folderFilesObject, turtleDBFolde
       })
     Object.keys(moduleFilesObject).forEach(filename => {
       folderFilesObjectCopy[join(moduleFolder, filename)] = moduleFilesObject[filename]
-      console.log(`\n${filename}\n`)
     })
     replicateFiles(folderFilesObjectCopy, folderFilesObject, turtleDBFolder, applyGitFilter)
   }

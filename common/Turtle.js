@@ -211,7 +211,7 @@ export class Turtle extends Addressifier {
   #inlineOrAddressPartReaders = [...this.#inlinePartReaders, ...this.#addressPartReaders]
 
   /** @type {Array.<PartReader>} */
-  #literalPart = range(5).map(width => code => ({
+  #literalPartReaders = range(5).map(width => code => ({
     type: `(${width}-byte literal)`,
     width,
     getDecoded: () => code.slice(-width)
@@ -263,7 +263,7 @@ export class Turtle extends Addressifier {
       encode: value => (value === true) && new Uint8Array([this.#codecsByName.TRUE.baseFooter])
     },
     WORD: {
-      partReaders: [this.#literalPart],
+      partReaders: [this.#literalPartReaders],
       decode: (code) => this.#decodeParts(code)[0].getDecoded(),
       encode: (uint8Array) => {
         if (uint8Array instanceof Uint8Array && uint8Array.length <= 4) {
