@@ -1,7 +1,7 @@
 import { globalTestRunner, urlToName } from '../lib/utils/TestRunner.js'
 import { BouncelessTurtle } from './BouncelessTurtle.js'
 
-globalTestRunner.only.describe(urlToName(import.meta.url), suite => {
+globalTestRunner.describe(urlToName(import.meta.url), suite => {
   suite.it('get and set without address use the last value', async ({ assert }) => {
     const t = new BouncelessTurtle()
     t.set({ a: 1, b: 2 })

@@ -1,5 +1,5 @@
 {
-  "started": "March 5",
+  "started": "2026 March 5",
   "issues": [
     {
       "description": "files momentarily twitch back to pre-edit after saving (issue with fileSync). also crashes when syncing"
