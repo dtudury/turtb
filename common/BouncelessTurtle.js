@@ -1,3 +1,3 @@
-import { Turtle } from './Turtle.js'
+import { Terrapin } from './Terrapin.js'
 
-export class BouncelessTurtle extends Turtle {}
+export class BouncelessTurtle extends Terrapin {}

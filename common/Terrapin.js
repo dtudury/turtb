@@ -1,16 +1,16 @@
 import { Recaller } from './utils/Recaller.js'
 import { TurtleCodecRegistry } from './TurtleCodecRegistry.js'
 
-function * changedPaths (turtle, addrA, addrB, path = []) {
+function * changedPaths (terrapin, addrA, addrB, path = []) {
   if (addrA === addrB) return
   yield path
-  const refsA = addrA !== undefined ? turtle.decode(addrA, true) : undefined
-  const refsB = addrB !== undefined ? turtle.decode(addrB, true) : undefined
+  const refsA = addrA !== undefined ? terrapin.decode(addrA, true) : undefined
+  const refsB = addrB !== undefined ? terrapin.decode(addrB, true) : undefined
   if (refsA && refsB && typeof refsA === 'object' && typeof refsB === 'object') {
     const keys = new Set([...Object.keys(refsA), ...Object.keys(refsB)])
     for (const key of keys) {
       if (refsA[key] !== refsB[key]) {
-        yield * changedPaths(turtle, refsA[key], refsB[key], [...path, key])
+        yield * changedPaths(terrapin, refsA[key], refsB[key], [...path, key])
       }
     }
   }
@@ -22,15 +22,15 @@ function * changedPaths (turtle, addrA, addrB, path = []) {
  * - Path-based get/set and reactive watch
  * - `clone` to snapshot state at a given address
  */
-export class Turtle extends TurtleCodecRegistry {
-  constructor (recaller = new Recaller('Turtle(default)')) {
+export class Terrapin extends TurtleCodecRegistry {
+  constructor (recaller = new Recaller('Terrapin(default)')) {
     super()
     this.recaller = recaller
   }
 
   /** @type {number} */
   get byteLength () {
-    this.recaller.reportKeyAccess(this, 'length', 'get byteLength', 'Turtle')
+    this.recaller.reportKeyAccess(this, 'length', 'get byteLength', 'Terrapin')
     return super.byteLength
   }
 
@@ -41,7 +41,7 @@ export class Turtle extends TurtleCodecRegistry {
    */
   appendCode (code) {
     const result = super.appendCode(code)
-    this.recaller.reportKeyMutation(this, 'length', 'appendCode', 'Turtle')
+    this.recaller.reportKeyMutation(this, 'length', 'appendCode', 'Terrapin')
     return result
   }
 
@@ -59,7 +59,7 @@ export class Turtle extends TurtleCodecRegistry {
       address = args.shift()
     } else {
       address = this.byteLength - 1 // accessing byteLength registers a dependency on appends
-      this.recaller.reportKeyAccess(this, JSON.stringify(args), 'get', 'Turtle')
+      this.recaller.reportKeyAccess(this, JSON.stringify(args), 'get', 'Terrapin')
     }
     let value = this.decode(address)
     for (const key of args) {
@@ -95,7 +95,7 @@ export class Turtle extends TurtleCodecRegistry {
     const result = this.appendCode(this.encode(root))
     const newAddress = this.byteLength - 1
     for (const path of changedPaths(this, prevAddress, newAddress)) {
-      this.recaller.reportKeyMutation(this, JSON.stringify(path), 'set', 'Turtle')
+      this.recaller.reportKeyMutation(this, JSON.stringify(path), 'set', 'Terrapin')
     }
     return result
   }
@@ -114,13 +114,13 @@ export class Turtle extends TurtleCodecRegistry {
   /**
    * @param {number} address
    * @param {Recaller} [recaller]
-   * @returns {Turtle}
+   * @returns {Terrapin}
    */
   clone (address, recaller = this.recaller) {
     const index = this.byteIndexToIndex(address)
-    const turtle = new Turtle(recaller)
-    turtle.offsetUint8Arrays = this.offsetUint8Arrays.slice(0, index + 1)
-    turtle.codeToAddressMap = this.codeToAddressMap.clone(address)
-    return turtle
+    const terrapin = new Terrapin(recaller)
+    terrapin.offsetUint8Arrays = this.offsetUint8Arrays.slice(0, index + 1)
+    terrapin.codeToAddressMap = this.codeToAddressMap.clone(address)
+    return terrapin
   }
 }

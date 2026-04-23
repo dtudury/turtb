@@ -1,5 +1,5 @@
 import { globalTestRunner, urlToName } from '../lib/utils/TestRunner.js'
-import { Turtle } from './Turtle.js'
+import { Terrapin } from './Terrapin.js'
 import { SignetTurtle } from './SignetTurtle.js'
 import { Duple } from './Duple.js'
 import { Signature } from './Signature.js'
@@ -55,13 +55,13 @@ globalTestRunner.only.describe(urlToName(import.meta.url), suite => {
     assert.equal(clone.decode(), new Signature(1234, new Uint8Array(64)), 'clone default decode is the pre-signature Signature')
 
     const asData = clone.slice()
-    const rehydrate = new Turtle()
+    const rehydrate = new Terrapin()
     rehydrate.appendCode(asData)
-    assert.equal(rehydrate.decode(rehydrate.byteLength - 1), new Signature(1234, new Uint8Array(64)), 'rehydrated turtle decodes last value correctly')
+    assert.equal(rehydrate.decode(rehydrate.byteLength - 1), new Signature(1234, new Uint8Array(64)), 'rehydrated terrapin decodes last value correctly')
   })
 
   suite.it('decodes with asRefs returns address-based maps', async ({ assert }) => {
-    const t = new Turtle()
+    const t = new Terrapin()
     const code = t.encode({ a: 1 })
     console.log({ code })
     console.log(t.decode(code))

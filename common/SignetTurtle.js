@@ -1,12 +1,12 @@
 import { Signature } from './Signature.js'
 import { verifySignature } from './Signer.js'
-import { Turtle } from './Turtle.js'
+import { Terrapin } from './Terrapin.js'
 
 /**
- * Extends Turtle with secp256k1 signing and verification.
+ * Extends Terrapin with secp256k1 signing and verification.
  * A signet historically was a personal seal used to authenticate documents.
  */
-export class SignetTurtle extends Turtle {
+export class SignetTurtle extends Terrapin {
   /** @type {number} */
   #signedLength = 0
 

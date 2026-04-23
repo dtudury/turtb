@@ -63,6 +63,22 @@ export class TurtleCodecRegistry extends Addressifier {
   #footerToCodec = []
 
   /**
+   * Returns the code for a given address. Negative addresses encode single-byte
+   * (primitive) values: address = -(footer + 1), so footer = -address - 1.
+   * This gives UNDEFINED, NULL, FALSE, TRUE, and every UINT7 value a stable
+   * address without requiring them to be appended to the store.
+   * @param {number} address
+   * @param {boolean} [strict=true]
+   * @returns {Uint8Array}
+   */
+  getCode (address, strict = true) {
+    if (typeof address === 'number' && address < 0) {
+      return new Uint8Array([-address - 1])
+    }
+    return super.getCode(address, strict)
+  }
+
+  /**
    * Decodes the parts of a coded value using its codec's partReaders.
    * The footer encodes both the codec type and which partReader option was chosen
    * for each part (packed as a mixed-radix number offset from baseFooter).
@@ -365,7 +381,12 @@ export class TurtleCodecRegistry extends Addressifier {
       partReaders: [this.#inlineOrAddressPartReaders, this.#inlineOrAddressPartReaders],
       decode: (code, asRefs) => {
         const parts = this.#decodeParts(code)
-        const getAddress = part => part.address ?? this.codeToAddressMap.get(part.getCode()) ?? this.appendCode(part.getCode())
+        const getAddress = part => {
+          if (part.address !== undefined) return part.address
+          const code = part.getCode()
+          if (code.length === 1) return -(code[0] + 1)
+          return this.codeToAddressMap.get(code) ?? this.appendCode(code)
+        }
         const part0IsLeaf = this.#codeToCodec(parts[0].getCode()).type !== 'DUPLE'
         const part1IsLeaf = this.#codeToCodec(parts[1].getCode()).type !== 'DUPLE'
         if (part0IsLeaf && part1IsLeaf) {
