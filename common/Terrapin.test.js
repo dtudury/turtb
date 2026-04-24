@@ -6,7 +6,7 @@ import { Signature } from './Signature.js'
 import { Signer } from './Signer.js'
 import { Commit } from './Commit.js'
 
-globalTestRunner.only.describe(urlToName(import.meta.url), suite => {
+globalTestRunner.describe(urlToName(import.meta.url), suite => {
   suite.it('encodes and decodes values', async ({ assert }) => {
     const compositeCodec = new SignetTurtle()
     // compositeCodec.recaller.watch('test', () => {
