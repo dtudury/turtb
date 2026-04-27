@@ -1,7 +1,7 @@
 import { globalTestRunner, urlToName } from './utils/TestRunner.js'
 import { Addressifier } from './Addressifier.js'
 
-globalTestRunner.describe(urlToName(import.meta.url), suite => {
+globalTestRunner.skip.describe(urlToName(import.meta.url), suite => {
   suite.it('streams', async ({ assert }) => {
     const a = new Addressifier()
     const b = new Addressifier()

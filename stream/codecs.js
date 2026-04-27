@@ -303,11 +303,20 @@ export function makeCodecs (r) {
       const leftIsDuple = r.footerToCodec[leftCode.at(-1)]?.type === 'DUPLE'
       const rightIsDuple = r.footerToCodec[rightCode.at(-1)]?.type === 'DUPLE'
       if (!leftIsDuple && !rightIsDuple) {
-        const nameIsRef = Array.isArray(asRefs) && asRefs[1]
-        const valueIsRef = asRefs === true || (Array.isArray(asRefs) && asRefs[0])
+        // 'all' means return addresses for both slots (used by array asRefs)
+        const nameIsRef = asRefs === 'all' || (Array.isArray(asRefs) && asRefs[1])
+        const valueIsRef = asRefs === 'all' || asRefs === true || (Array.isArray(asRefs) && asRefs[0])
         return new Duple([
           nameIsRef ? getPartAddress(parts[0]) : parts[0].getDecoded(false),
           valueIsRef ? getPartAddress(parts[1]) : parts[1].getDecoded(false)
+        ])
+      }
+      // Non-leaf: at least one child is itself a Duple subtree.
+      // With 'all', recurse into sub-duples and take the address of any leaf.
+      if (asRefs === 'all') {
+        return new Duple([
+          leftIsDuple ? parts[0].getDecoded('all') : getPartAddress(parts[0]),
+          rightIsDuple ? parts[1].getDecoded('all') : getPartAddress(parts[1])
         ])
       }
       return new Duple([parts[0].getDecoded(asRefs), parts[1].getDecoded(asRefs)])
@@ -331,7 +340,8 @@ export function makeCodecs (r) {
       return encodeMultipart([obj], ARRAY, asRefs)
     },
     decode (code, asRefs) {
-      const inner = decodeParts(code)[0].getDecoded(asRefs)
+      // 'all' mode: return an address for every element rather than decoded values
+      const inner = decodeParts(code)[0].getDecoded(asRefs === true ? 'all' : asRefs)
       if (inner instanceof Duple) return inner.flat()
       return Object.assign([], inner)
     }

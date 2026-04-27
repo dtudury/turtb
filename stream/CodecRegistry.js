@@ -68,11 +68,17 @@ export class CodecRegistry extends Addressifier {
 
   /**
    * Encode a JS value to a Uint8Array.
+   *
+   * When `asRefs` is truthy and `value` is a number it is treated as an
+   * address and resolved directly — this is the inverse of asRefs(), letting
+   * callers round-trip through asRefs → encode without deserialising subtrees.
+   *
    * @param {any} value
-   * @param {boolean|boolean[]} [asRefs]
+   * @param {boolean|boolean[]|string} [asRefs]
    * @returns {Uint8Array}
    */
   encode (value, asRefs) {
+    if (asRefs && typeof value === 'number') return this.resolve(value)
     for (const name in this.#codecs) {
       const codec = this.#codecs[name]
       const code = codec.encode?.(value, asRefs)
@@ -89,6 +95,28 @@ export class CodecRegistry extends Addressifier {
    */
   encodeVariable (value) {
     return this.#codecs.VARIABLE._encode(this.encode(value))
+  }
+
+  /**
+   * Return the immediate children of the value at `address` as addresses
+   * rather than decoded values:
+   *   Object → { key: valueAddress }  (names stay as strings)
+   *   Array  → [ addr0, addr1, … ]
+   *   Other  → address itself
+   *
+   * Useful for structural comparison without fully deserialising large trees.
+   *
+   * @param {number} address
+   * @returns {Object|Array|number}
+   */
+  asRefs (address) {
+    const code = this.resolve(address)
+    const { type } = this.footerToCodec[code.at(-1)]
+    if (type === 'OBJECT' || type === 'EMPTY_OBJECT' ||
+        type === 'ARRAY'  || type === 'EMPTY_ARRAY') {
+      return this.decode(address, true)
+    }
+    return address
   }
 
   /**

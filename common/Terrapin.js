@@ -58,7 +58,7 @@ export class Terrapin extends TurtleCodecRegistry {
     if (typeof args[0] === 'number') {
       address = args.shift()
     } else {
-      address = this.byteLength - 1 // accessing byteLength registers a dependency on appends
+      address = super.byteLength - 1
       this.recaller.reportKeyAccess(this, JSON.stringify(args), 'get', 'Terrapin')
     }
     let value = this.decode(address)
