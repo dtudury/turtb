@@ -6,7 +6,9 @@ import { config } from 'dotenv'
 import { question, questionNewPassword } from 'readline-sync'
 import { start as startRepl } from 'repl'
 import { Signer } from '../stream/Signer.js'
+import { Stream } from '../stream/Stream.js'
 import { StreamRegistry } from '../stream/StreamRegistry.js'
+import { archiveSync } from '../stream/archiveSync.js'
 import { fileSync } from '../stream/fileSync.js'
 import { outletSync } from '../stream/outletSync.js'
 import { originSync } from '../stream/originSync.js'
@@ -119,7 +121,12 @@ console.log(`\x1b[35m
     │      PUBLIC KEY: │  \x1b[0m${publicKeyHex}${' '.repeat(maxLength - publicKeyHex.length)}\x1b[35m  │
     ╰━━━━━━━━━━━━━━━━━━┷━━${'━'.repeat(maxLength)}━━╯\x1b[0m`)
 
-const registry = new StreamRegistry(options.dataDir)
+const dataDir = options.dataDir
+const registry = new StreamRegistry(async key => {
+  const stream = new Stream()
+  await archiveSync(stream, dataDir, key)
+  return stream
+})
 const stream = await registry.open(publicKeyHex)
 
 if (options.files) {

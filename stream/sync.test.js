@@ -24,7 +24,7 @@ function waitFor (stream, predicate, timeout = 2000) {
 
 describe(import.meta.url, ({ test }) => {
   test('outlet syncs existing stream data to a new origin', async ({ assert }) => {
-    const serverRegistry = new StreamRegistry('/tmp/sync-test-outlet-' + Date.now())
+    const serverRegistry = new StreamRegistry()
     const serverStream = await serverRegistry.open(KEY)
     serverStream.set({ hello: 'world' })
 
@@ -32,7 +32,7 @@ describe(import.meta.url, ({ test }) => {
     await new Promise(resolve => wss.on('listening', resolve))
     const { port } = wss.address()
 
-    const clientRegistry = new StreamRegistry('/tmp/sync-test-origin-' + Date.now())
+    const clientRegistry = new StreamRegistry()
     const clientStream = await clientRegistry.open(KEY)
     const ws = await originSync(clientStream, KEY, 'localhost', port)
 
@@ -44,12 +44,12 @@ describe(import.meta.url, ({ test }) => {
   })
 
   test('origin syncs local data up to the outlet', async ({ assert }) => {
-    const serverRegistry = new StreamRegistry('/tmp/sync-test-outlet-' + Date.now())
+    const serverRegistry = new StreamRegistry()
     const wss = outletSync(serverRegistry, 0)
     await new Promise(resolve => wss.on('listening', resolve))
     const { port } = wss.address()
 
-    const clientRegistry = new StreamRegistry('/tmp/sync-test-origin-' + Date.now())
+    const clientRegistry = new StreamRegistry()
     const clientStream = await clientRegistry.open(KEY)
     clientStream.set({ from: 'client' })
 
@@ -64,13 +64,13 @@ describe(import.meta.url, ({ test }) => {
   })
 
   test('two origins converge on the same state', async ({ assert }) => {
-    const serverRegistry = new StreamRegistry('/tmp/sync-test-converge-' + Date.now())
+    const serverRegistry = new StreamRegistry()
     const wss = outletSync(serverRegistry, 0)
     await new Promise(resolve => wss.on('listening', resolve))
     const { port } = wss.address()
 
-    const r1 = new StreamRegistry('/tmp/sync-test-c1-' + Date.now())
-    const r2 = new StreamRegistry('/tmp/sync-test-c2-' + Date.now())
+    const r1 = new StreamRegistry()
+    const r2 = new StreamRegistry()
     const s1 = await r1.open(KEY)
     const s2 = await r2.open(KEY)
 
