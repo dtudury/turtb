@@ -5,7 +5,10 @@
   "repository": "git@github.com:dtudury/turtb.git",
   "author": "David Tudury <david.tudury@gmail.com>",
   "license": "AGPL-3.0-only",
-  "bin": "./bin/turtb.js",
+  "bin": {
+    "turtb": "./bin/turtb.js",
+    "stream": "./bin/stream.js"
+  },
   "type": "module",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.958.0",

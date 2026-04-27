@@ -1,5 +1,5 @@
 import { describe } from './utils/testing.js'
-import { Stream } from './Stream.js'
+import { Stream, ConflictError } from './Stream.js'
 import { Signer } from './Signer.js'
 import { Signature } from './Signature.js'
 
@@ -168,6 +168,28 @@ describe(import.meta.url, ({ test }) => {
     const other = new Signer('bob', 'different')
     const otherKeys = await other.keysFor(name)
     assert.ok(!(await s.verify(sig, otherKeys.publicKey)), 'wrong key does not verify')
+  })
+
+  test('conditionalSet rejects stale edits and accepts fresh ones', ({ assert }) => {
+    const s = new Stream()
+    s.set({ x: 1 })
+    const tip = s.byteLength
+
+    // A concurrent write advances the stream past tip
+    s.set({ x: 2 })
+
+    // Stale edit is rejected
+    let caught
+    try { s.conditionalSet(tip, { x: 3 }) } catch (e) { caught = e }
+    assert.ok(caught instanceof ConflictError, 'throws ConflictError')
+    assert.equal(caught.expectedTip, tip)
+    assert.equal(caught.actualTip, s.byteLength)
+    assert.equal(s.get('x'), 2, 'stream unchanged after rejection')
+
+    // Fresh edit at current tip succeeds
+    const freshTip = s.byteLength
+    s.conditionalSet(freshTip, { x: 3 })
+    assert.equal(s.get('x'), 3, 'fresh conditional set applied')
   })
 
   test('clone snapshots state at a given address', ({ assert }) => {

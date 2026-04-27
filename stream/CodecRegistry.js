@@ -120,6 +120,40 @@ export class CodecRegistry extends Addressifier {
   }
 
   /**
+   * Copy a value from another CodecRegistry into this one by address.
+   * Uses asRefs to traverse structure level-by-level, avoiding full JS
+   * deserialization of composite values. Negative addresses (single-byte
+   * primitives) are universal and returned as-is.
+   *
+   * @param {CodecRegistry} source
+   * @param {number} address
+   * @returns {number} address of the value in this registry
+   */
+  copyFrom (source, address) {
+    if (address < 0) return address // universal: same footer in any registry
+    const code = source.resolve(address)
+    const existing = this.addressOf(code)
+    if (existing !== undefined) return existing
+    const refs = source.asRefs(address)
+    if (Array.isArray(refs)) {
+      const copied = refs.map(a => this.copyFrom(source, a))
+      const newCode = this.encode(copied, true)
+      return this.addressOf(newCode) ?? this.append(newCode)
+    }
+    if (refs !== null && typeof refs === 'object') {
+      const copied = Object.fromEntries(
+        Object.entries(refs).map(([k, v]) => [k, this.copyFrom(source, v)])
+      )
+      const newCode = this.encode(copied, true)
+      return this.addressOf(newCode) ?? this.append(newCode)
+    }
+    // Leaf primitive: decode from source, re-encode here
+    const value = source.decode(address)
+    const newCode = this.encode(value)
+    return this.addressOf(newCode) ?? this.append(newCode)
+  }
+
+  /**
    * Appends a compound code by first splitting it into constituent subcodes
    * (back-to-front, footer-determined widths) and appending each independently.
    * Returns the address of the outermost subcode.
@@ -136,7 +170,10 @@ export class CodecRegistry extends Addressifier {
       rest = rest.subarray(0, -width)
     }
     let last = -1
-    for (const sub of subcodes) last = super.append(sub)
+    for (const sub of subcodes) {
+      const existing = this.addressOf(sub)
+      last = existing !== undefined ? existing : super.append(sub)
+    }
     return last
   }
 

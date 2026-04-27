@@ -143,20 +143,29 @@ export class Addressifier {
 
   /**
    * WritableStream that accepts the wire format and calls append() for each chunk.
+   *
+   * Resilient by design: duplicate chunks are silently skipped (they are already
+   * stored at the same address). Frames with implausible lengths are rejected so
+   * a single corrupt byte cannot stall the stream indefinitely.
+   *
+   * @param {number} [maxFrameSize=64*1024*1024]  reject frames larger than this
    * @returns {WritableStream}
    */
-  makeWritableStream () {
+  makeWritableStream (maxFrameSize = 64 * 1024 * 1024) {
     const self = this
     let buf = new Uint8Array(0)
     return new WritableStream({
-      write (chunk) {
-        const next = new Uint8Array(buf.length + chunk.length)
-        next.set(buf); next.set(chunk, buf.length)
+      write (incoming) {
+        const next = new Uint8Array(buf.length + incoming.length)
+        next.set(buf); next.set(incoming, buf.length)
         buf = next
         while (buf.length >= 4) {
           const len = new Uint32Array(buf.slice(0, 4).buffer)[0]
+          if (len === 0) throw new Error('malformed frame: zero-length chunk')
+          if (len > maxFrameSize) throw new Error(`malformed frame: length ${len} exceeds ${maxFrameSize}`)
           if (buf.length < 4 + len) break
-          self.append(buf.slice(4, 4 + len))
+          const code = buf.slice(4, 4 + len)
+          if (self.addressOf(code) === undefined) self.append(code)
           buf = buf.slice(4 + len)
         }
       }

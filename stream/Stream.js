@@ -4,6 +4,23 @@ import { Signature } from './Signature.js'
 import { verifySignature } from './Signer.js'
 
 /**
+ * Thrown by conditionalSet() when the stream has advanced past the expected tip.
+ * Catch this to detect write conflicts and retry with a fresh read.
+ */
+export class ConflictError extends Error {
+  /**
+   * @param {number} expectedTip  byteLength the caller observed
+   * @param {number} actualTip    byteLength at the moment of the attempted write
+   */
+  constructor (expectedTip, actualTip) {
+    super(`conflict: expected tip ${expectedTip} but stream is at ${actualTip}`)
+    this.name = 'ConflictError'
+    this.expectedTip = expectedTip
+    this.actualTip = actualTip
+  }
+}
+
+/**
  * Yield every path where addrA and addrB differ, including the root.
  * Compares by address so unchanged subtrees are skipped in O(1).
  */
@@ -81,7 +98,10 @@ export class Stream extends CodecRegistry {
     if (typeof args[0] === 'number') {
       address = args.shift()
     } else {
-      address = super.byteLength - 1 // don't track through byteLength getter
+      address = super.byteLength - 1
+      // Register both dependencies so watchers re-run on any append() (external
+      // sync via makeWritableStream) AND on fine-grained path mutations (set()).
+      this.#recaller.reportKeyAccess(this, 'length')
       this.#recaller.reportKeyAccess(this, JSON.stringify(args))
     }
     if (address < 0) return undefined
@@ -148,6 +168,23 @@ export class Stream extends CodecRegistry {
   }
 
   /**
+   * Like set(), but only succeeds if the stream's current byteLength equals
+   * `expectedTip` — i.e., nothing has been written since the caller last read.
+   *
+   * Throws ConflictError when the precondition fails. Callers should catch it,
+   * re-read the latest state, re-apply their change, and retry.
+   *
+   * @param {number} expectedTip  byteLength observed when the change was prepared
+   * @param {...(string|any)} args  same arguments as set()
+   * @returns {number} address of the newly appended code
+   */
+  conditionalSet (expectedTip, ...args) {
+    const actual = super.byteLength
+    if (actual !== expectedTip) throw new ConflictError(expectedTip, actual)
+    return this.set(...args)
+  }
+
+  /**
    * Snapshot this stream up to (and including) `address`.
    * The returned Stream shares no mutable state with the original.
    * @param {number} address
@@ -190,5 +227,52 @@ export class Stream extends CodecRegistry {
     const sigAddress = this.addressOf(sigCode)
     const bytes = this.slice(sig.address, sigAddress - sigCode.length)
     return verifySignature(publicKey, bytes, sig.compactRawBytes)
+  }
+
+  /**
+   * Like makeWritableStream(), but verifies every SIGNATURE chunk against
+   * `publicKey` before accepting it. Non-signature chunks are appended as
+   * normal; the entire write is rejected (WritableStream errors) if any
+   * signature fails to verify.
+   *
+   * Use this when receiving data from an untrusted source (a peer, a file
+   * written by someone else) to ensure every signed range is authentic.
+   *
+   * @param {Uint8Array} publicKey
+   * @param {number} [maxFrameSize]
+   * @returns {WritableStream}
+   */
+  makeVerifiedWritableStream (publicKey, maxFrameSize = 64 * 1024 * 1024) {
+    const self = this
+    let buf = new Uint8Array(0)
+    return new WritableStream({
+      async write (incoming) {
+        const next = new Uint8Array(buf.length + incoming.length)
+        next.set(buf); next.set(incoming, buf.length)
+        buf = next
+        while (buf.length >= 4) {
+          const len = new Uint32Array(buf.slice(0, 4).buffer)[0]
+          if (len === 0) throw new Error('malformed frame: zero-length chunk')
+          if (len > maxFrameSize) throw new Error(`malformed frame: length ${len} exceeds ${maxFrameSize}`)
+          if (buf.length < 4 + len) break
+          const code = buf.slice(4, 4 + len)
+          buf = buf.slice(4 + len)
+
+          if (self.addressOf(code) !== undefined) continue // already present, skip
+
+          // If this is a SIGNATURE chunk, verify it covers the bytes since its
+          // stated start address before we accept it into the store.
+          const codec = self.footerToCodec[code.at(-1)]
+          if (codec?.type === 'SIGNATURE') {
+            const sig = self.decode(code)
+            const bytes = self.slice(sig.address, self.byteLength - 1)
+            const valid = await verifySignature(publicKey, bytes, sig.compactRawBytes)
+            if (!valid) throw new Error('signature verification failed')
+          }
+
+          self.append(code)
+        }
+      }
+    })
   }
 }

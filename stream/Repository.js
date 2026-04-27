@@ -25,12 +25,10 @@ export class Repository {
   commit (message) {
     if (this.working.byteLength === 0) throw new Error('nothing to commit')
 
-    // Decode the working value and encode it into the committed stream.
-    // encode() stores shared sub-values once via the content map, so
-    // unchanged sub-trees are referenced by address rather than re-copied.
-    const data = this.working.decode(this.working.byteLength - 1)
-    const dataCode = this.committed.encode(data)
-    const dataAddress = this.committed.addressOf(dataCode) ?? this.committed.append(dataCode)
+    // Copy the working value into the committed stream using asRefs traversal.
+    // This avoids full JS deserialization of composite values — sub-trees
+    // already present in committed are reused by address.
+    const dataAddress = this.committed.copyFrom(this.working, this.working.byteLength - 1)
 
     // Store the commit record with dataAddress as a reference, not inline data.
     const commitCode = this.committed.encode({ message, date: new Date(), dataAddress })

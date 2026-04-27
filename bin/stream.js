@@ -1,0 +1,172 @@
+#!/usr/bin/env node
+
+import { readFileSync } from 'fs'
+import { Option, program } from 'commander'
+import { config } from 'dotenv'
+import { question, questionNewPassword } from 'readline-sync'
+import { start as startRepl } from 'repl'
+import { Signer } from '../stream/Signer.js'
+import { StreamRegistry } from '../stream/StreamRegistry.js'
+import { fileSync } from '../stream/fileSync.js'
+import { outletSync } from '../stream/outletSync.js'
+import { originSync } from '../stream/originSync.js'
+import { webSync } from '../stream/webSync.js'
+import { s3Sync } from '../stream/s3Sync.js'
+
+const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url)))
+
+program
+  .name('stream')
+  .description('turtb stream CLI')
+  .version(version)
+
+  .addOption(
+    new Option('--env-file <path>', 'path to .env file')
+  )
+  .addOption(
+    new Option('--name <string>', 'name for this dataset')
+      .env('STREAM_NAME')
+  )
+  .addOption(
+    new Option('--username <string>', 'username for signing')
+      .env('STREAM_USERNAME')
+  )
+  .addOption(
+    new Option('--password <string>', 'password for signing')
+      .env('STREAM_PASSWORD')
+  )
+  .addOption(
+    new Option('--data-dir <path>', 'directory for archive files')
+      .env('STREAM_DATA_DIR')
+      .default('.stream')
+  )
+  .addOption(
+    new Option('--files [path]', 'mirror local files to/from stream (defaults to current directory)')
+      .env('STREAM_FILES')
+      .preset('.')
+  )
+  .addOption(
+    new Option('--s3-bucket <name>', 'S3 bucket name')
+      .env('STREAM_S3_BUCKET')
+  )
+  .addOption(
+    new Option('--s3-endpoint <url>', 'S3-compatible endpoint (omit for AWS)')
+      .env('STREAM_S3_ENDPOINT')
+  )
+  .addOption(
+    new Option('--s3-region <region>', 'S3 region')
+      .env('STREAM_S3_REGION')
+  )
+  .addOption(
+    new Option('--s3-access-key-id <id>', 'S3 access key ID')
+      .env('STREAM_S3_ACCESS_KEY_ID')
+  )
+  .addOption(
+    new Option('--s3-secret-access-key <key>', 'S3 secret access key')
+      .env('STREAM_S3_SECRET_ACCESS_KEY')
+  )
+  .addOption(
+    new Option('--web [port]', 'start HTTP + WebSocket server for browsers and peers')
+      .env('STREAM_WEB')
+      .preset('8080')
+  )
+  .addOption(
+    new Option('--outlet [port]', 'accept inbound WebSocket peer connections')
+      .env('STREAM_OUTLET')
+      .preset('1024')
+  )
+  .addOption(
+    new Option('--origin <host:port>', 'connect to a remote outlet')
+      .env('STREAM_ORIGIN')
+  )
+  .addOption(
+    new Option('--interactive', 'start a REPL with stream, signer, and helpers as globals')
+      .env('STREAM_INTERACTIVE')
+  )
+  .addOption(
+    new Option('--verbose', 'enable verbose logging')
+      .env('STREAM_VERBOSE')
+  )
+
+  .parse()
+
+const options = program.opts()
+
+if (options.envFile) {
+  config({ path: options.envFile })
+  program.parse()
+  Object.assign(options, program.opts())
+}
+
+options.name ||= question('Name: ')
+options.username ||= question('Username: ')
+const password = options.password || questionNewPassword('Password [ATTENTION!: Backspace won\'t work here]: ', { min: 4, max: 999 })
+
+const signer = new Signer(options.username, password)
+const { publicKey } = await signer.keysFor(options.name)
+const publicKeyHex = Array.from(publicKey).map(b => b.toString(16).padStart(2, '0')).join('')
+
+const name = options.name
+const username = options.username
+const maxLength = Math.max(name.length, username.length, publicKeyHex.length)
+console.log(`\x1b[35m
+    ╭─────────────────────${'─'.repeat(maxLength)}──╮
+    ╞══════════════════╤══${'═'.repeat(maxLength)}══╡
+    │            NAME: │  \x1b[0m${name}${' '.repeat(maxLength - name.length)}\x1b[35m  │
+    ├──────────────────┼──${'─'.repeat(maxLength)}──┤
+    │        USERNAME: │  \x1b[0m${username}${' '.repeat(maxLength - username.length)}\x1b[35m  │
+    ├──────────────────┼──${'─'.repeat(maxLength)}──┤
+    │      PUBLIC KEY: │  \x1b[0m${publicKeyHex}${' '.repeat(maxLength - publicKeyHex.length)}\x1b[35m  │
+    ╰━━━━━━━━━━━━━━━━━━┷━━${'━'.repeat(maxLength)}━━╯\x1b[0m`)
+
+const registry = new StreamRegistry(options.dataDir)
+const stream = await registry.open(publicKeyHex)
+
+if (options.files) {
+  const folder = typeof options.files === 'string' ? options.files : '.'
+  await fileSync(stream, folder, options.dataDir)
+  console.log(`\x1b[32mmirroring files: ${folder}\x1b[0m`)
+}
+
+if (options.s3Bucket) {
+  await s3Sync(stream, publicKeyHex, {
+    bucket: options.s3Bucket,
+    endpoint: options.s3Endpoint,
+    region: options.s3Region,
+    accessKeyId: options.s3AccessKeyId,
+    secretAccessKey: options.s3SecretAccessKey
+  })
+  console.log(`\x1b[32ms3: syncing to bucket ${options.s3Bucket}\x1b[0m`)
+}
+
+if (options.web) {
+  const port = +options.web
+  await webSync(registry, publicKeyHex, port)
+  console.log(`\x1b[32mweb: http://localhost:${port}\x1b[0m`)
+}
+
+if (options.outlet) {
+  const port = +options.outlet
+  outletSync(registry, port)
+  console.log(`\x1b[32moutlet: listening on port ${port}\x1b[0m`)
+}
+
+if (options.origin) {
+  const [host, port] = options.origin.split(':')
+  await originSync(stream, publicKeyHex, host, +port)
+  console.log(`\x1b[32morigin: connected to ${options.origin}\x1b[0m`)
+}
+
+if (options.verbose) {
+  console.log(`archive: ${options.dataDir}/${publicKeyHex}.bin (${stream.byteLength} bytes loaded)`)
+  console.log({ options })
+}
+
+if (options.interactive) {
+  Object.assign(globalThis, { registry, stream, signer, name, username, publicKeyHex })
+  const replServer = startRepl({ breakEvalOnSigint: true })
+  replServer.setupHistory('.node_repl_history', err => {
+    if (err) console.error(err)
+  })
+  replServer.on('exit', process.exit)
+}
