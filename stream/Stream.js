@@ -56,7 +56,6 @@ function * changedPaths (stream, addrA, addrB, path = []) {
 export class Stream extends CodecRegistry {
   #recaller
   #signedLength = 0
-  #inSet = false
 
   /**
    * @param {Recaller} [recaller]
@@ -80,7 +79,7 @@ export class Stream extends CodecRegistry {
    */
   append (code) {
     const address = super.append(code)
-    if (!this.#inSet) this.#recaller.reportKeyMutation(this, 'length')
+    this.#recaller.reportKeyMutation(this, 'length')
     return address
   }
 
@@ -101,8 +100,8 @@ export class Stream extends CodecRegistry {
       address = args.shift()
     } else {
       address = super.byteLength - 1
-      // Register both dependencies so watchers re-run on any append() (external
-      // sync via makeWritableStream) AND on fine-grained path mutations (set()).
+      // 'length': re-run when external bytes arrive (append() fires 'length').
+      // path string: re-run when set() mutates this specific path via changedPaths.
       this.#recaller.reportKeyAccess(this, 'length')
       this.#recaller.reportKeyAccess(this, JSON.stringify(args))
     }
@@ -133,28 +132,43 @@ export class Stream extends CodecRegistry {
     const value = args.pop()
     const path = args
 
-    let root = value
-    if (path.length && baseAddress >= 0) {
-      root = this.decode(baseAddress)
-      let node = root
-      for (let i = 0; i < path.length - 1; i++) node = node[path[i]]
-      node[path[path.length - 1]] = value
-    }
-
     const prevAddress = super.byteLength > 0 ? super.byteLength - 1 : undefined
-    this.#inSet = true
-    let address
-    try {
-      address = this.append(this.encode(root))
-    } finally {
-      this.#inSet = false
-    }
-    const newAddress = super.byteLength - 1
 
+    if (path.length === 0 || baseAddress < 0) {
+      // Whole-value set: encode and store, bypassing Stream.append so 'length'
+      // is not fired — changedPaths will emit the right path-level mutations.
+      super.append(this.encode(value))
+    } else {
+      // Path update: navigate via asRefs to avoid decoding untouched subtrees,
+      // then rebuild only the changed path bottom-up, reusing sibling addresses.
+      const levels = []
+      let addr = baseAddress
+      for (let i = 0; i < path.length - 1; i++) {
+        const refs = this.asRefs(addr)
+        levels.push({ refs, key: path[i] })
+        addr = Array.isArray(refs) ? refs[+path[i]] : refs[path[i]]
+      }
+      levels.push({ refs: this.asRefs(addr), key: path[path.length - 1] })
+
+      // Encode the new leaf value
+      const leafCode = this.encode(value)
+      let childAddr = this.addressOf(leafCode) ?? super.append(leafCode)
+
+      // Rebuild from leaf to root, reusing unchanged siblings by address
+      for (let i = levels.length - 1; i >= 0; i--) {
+        const { refs, key } = levels[i]
+        const newRefs = Array.isArray(refs) ? [...refs] : { ...refs }
+        newRefs[Array.isArray(refs) ? +key : key] = childAddr
+        const code = this.encode(newRefs, true)
+        childAddr = this.addressOf(code) ?? super.append(code)
+      }
+    }
+
+    const newAddress = super.byteLength - 1
     for (const changed of changedPaths(this, prevAddress, newAddress)) {
       this.#recaller.reportKeyMutation(this, JSON.stringify(changed))
     }
-    return address
+    return newAddress
   }
 
   /**
