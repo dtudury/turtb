@@ -62,6 +62,7 @@ async function writeToFolder (folder, files) {
   for (const [rel, content] of Object.entries(files)) {
     const abs = join(folder, rel)
     await mkdir(dirname(abs), { recursive: true })
+    if (typeof content !== 'string' && !(content instanceof Uint8Array)) continue
     const bytes = typeof content === 'string' ? new TextEncoder().encode(content) : content
     await writeFile(abs, bytes)
   }
