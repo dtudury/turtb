@@ -1,3 +1,4 @@
+/* eslint-env browser */
 import { Stream } from '../../stream/Stream.js'
 import { hx, mount } from '../../stream/hx.js'
 
