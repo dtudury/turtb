@@ -38,9 +38,13 @@ connectWS()
 // A plain object used as a key for recaller so selectedFile changes trigger re-renders.
 const uiState = {}
 let selectedFile = null
+let editContent = ''   // snapshot at selection time — not reactive to stream updates
 
 function selectFile (path) {
   selectedFile = path
+  const files = getFiles()
+  const content = files?.[path]
+  editContent = typeof content === 'string' ? content : ''
   stream.recaller.reportKeyMutation(uiState, 'selected')
 }
 
@@ -96,15 +100,14 @@ mount(hx`
         stream.recaller.reportKeyAccess(uiState, 'selected')
         if (!selectedFile) return hx`<div class="empty-hint">select a file to edit</div>`
         const files = getFiles()
-        const content = files?.[selectedFile]
-        const isText = typeof content === 'string'
+        const isText = typeof files?.[selectedFile] === 'string'
         return hx`
           <div class="editor-header">
             <span class="editor-filename">${selectedFile}</span>
             ${isText ? hx`<button onclick="${saveFile}">save</button>` : hx``}
           </div>
           <textarea class="editor-textarea"
-                    value="${isText ? content : '[binary file — not editable]'}"
+                    value="${isText ? editContent : '[binary file — not editable]'}"
                     readonly="${!isText}"></textarea>
         `
       }}

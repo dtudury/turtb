@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>components</title>
+  <link rel="stylesheet" href="/apps/styles/proto.css">
+  <style>
+    h1 { font-size: 1.1rem; margin-bottom: 1.5rem; }
+
+    .demo-section {
+      margin-bottom: 2rem;
+      padding-bottom: 2rem;
+      border-bottom: 1.5px dashed var(--rule);
+    }
+    .demo-label {
+      font-size: 0.75rem;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+
+    /* counter */
+    .counter {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-family: monospace;
+      font-size: 1.25rem;
+    }
+    .counter button {
+      font-family: monospace;
+      font-size: 1rem;
+      width: 2rem;
+      padding: 0.15rem 0;
+      text-align: center;
+    }
+    .counter-value {
+      min-width: 3ch;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>components</h1>
+  <div id="root"></div>
+  <script type="module" src="/apps/components/main.js"></script>
+</body>
+</html>
