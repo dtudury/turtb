@@ -34,7 +34,7 @@ function decodeBytes (bytes) {
  * Recursively read all accepted files in folder.
  * @param {string} folder
  * @param {(rel: string) => boolean} accepts
- * @returns {Promise<Object>}
+ * @returns {Promise<{ files: Object, maxMtime: number }>}
  */
 async function readFolder (folder, accepts) {
   const files = {}
@@ -107,47 +107,39 @@ function filesEqual (a, b) {
 }
 
 /**
- * Two-way sync between a folder and a Stream.
+ * Two-way sync between a folder and a FileRepository.
  *
- * Initial state:
- *   - Stream has data  → stream wins, writes to folder
- *   - Stream is empty  → folder wins, sets stream
+ * Initial state (startup authority via timestamps):
+ *   - repo has commits and no disk file is newer than the last commit → repo wins
+ *   - repo is empty or any disk file is newer than the last commit → disk wins
  *
  * Ongoing:
- *   - Folder changes   → reads folder, updates stream if content differs
- *   - Stream changes   → writes changed files to folder, deletes removed files
+ *   - Repo changes (new commit from peer/archive) → write changed files to disk
+ *   - Disk changes → checkout, update files, commit to repo
  *
- * @param {import('./Stream.js').Stream} stream
+ * @param {import('./FileRepository.js').FileRepository} repo
  * @param {string} [folder='.']
  * @param {string} [dataDir='.stream']
- * @param {string|null} [archivePath=null]  path to the archive file, used for timestamp comparison
  * @returns {Promise<import('@parcel/watcher').AsyncSubscription>}
  */
-export async function fileSync (stream, folder = '.', dataDir = '.stream', archivePath = null) {
+export async function fileSync (repo, folder = '.', dataDir = '.stream') {
   const accepts = buildFilter(folder, dataDir)
 
-  let archiveMtime = 0
-  if (archivePath) {
-    try { archiveMtime = (await stat(archivePath)).mtimeMs } catch {}
-  }
-
   const { files: diskFiles, maxMtime: diskMtime } = await readFolder(folder, accepts)
-  const streamValue = stream.byteLength > 0 ? stream.get() : null
-  const streamFiles = streamValue && typeof streamValue === 'object' && !Array.isArray(streamValue) && !(streamValue instanceof Uint8Array)
-    ? streamValue
-    : null
+  const lastCommit = repo.lastCommit
+  const commitTime = lastCommit ? lastCommit.date.getTime() : 0
 
-  const diskIsNewer = diskMtime > archiveMtime
-
-  // Resolve initial state
-  if (streamFiles && !diskIsNewer) {
-    // Stream wins: write stream content to disk
-    const toDelete = Object.keys(diskFiles).filter(k => !(k in streamFiles))
-    await writeToFolder(folder, streamFiles)
+  if (lastCommit && diskMtime <= commitTime) {
+    // Repo wins: write committed files to disk
+    const repoFiles = repo.files
+    const toDelete = Object.keys(diskFiles).filter(k => !(k in repoFiles))
+    await writeToFolder(folder, repoFiles)
     await deleteFromFolder(folder, toDelete)
   } else if (Object.keys(diskFiles).length > 0) {
-    // Disk wins: push disk content into stream
-    stream.set(diskFiles)
+    // Disk wins: commit current disk state as the initial commit
+    const working = repo.checkout()
+    working.set(diskFiles)
+    repo.commit(working, 'initial')
   }
 
   // Mutex: prevents a change in one direction from echoing back through the other
@@ -158,13 +150,14 @@ export async function fileSync (stream, folder = '.', dataDir = '.stream', archi
     try { await fn() } finally { updating = false }
   }
 
-  // Stream → disk
-  stream.watch('fileSync:stream→disk', () => {
+  // Repo → disk: fires when a new commit lands (from peer, archive, or local commit)
+  repo.watch('fileSync:repo→disk', () => {
     if (updating) return
-    const files = stream.get()
-    if (!files || typeof files !== 'object' || Array.isArray(files)) return
+    const commit = repo.lastCommit
+    if (!commit) return
+    const files = repo.files
     withLock(async () => {
-      const current = await readFolder(folder, accepts)
+      const { files: current } = await readFolder(folder, accepts)
       if (filesEqual(current, files)) return
       const toDelete = Object.keys(current).filter(k => !(k in files))
       await writeToFolder(folder, files)
@@ -172,15 +165,18 @@ export async function fileSync (stream, folder = '.', dataDir = '.stream', archi
     })
   })
 
-  // Disk → stream
+  // Disk → repo: fires when the filesystem changes
   const subscription = await subscribe(folder, (err, events) => {
     if (err) { console.error('fileSync watcher error:', err); return }
     const relevant = events.filter(e => accepts(relative(folder, e.path)))
     if (!relevant.length) return
     withLock(async () => {
-      const newFiles = await readFolder(folder, accepts)
-      const current = stream.byteLength > 0 ? stream.get() : {}
-      if (!filesEqual(current, newFiles)) stream.set(newFiles)
+      const { files: newFiles } = await readFolder(folder, accepts)
+      const current = repo.files ?? {}
+      if (filesEqual(current, newFiles)) return
+      const working = repo.checkout()
+      working.set(newFiles)
+      repo.commit(working, 'file change')
     })
   })
 

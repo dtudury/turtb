@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 import { readFileSync } from 'fs'
-import { join } from 'path'
 import { Option, program } from 'commander'
 import { config } from 'dotenv'
 import { question, questionNewPassword } from 'readline-sync'
 import { start as startRepl } from 'repl'
 import { Signer } from '../stream/Signer.js'
 import { Stream } from '../stream/Stream.js'
+import { FileRepository } from '../stream/FileRepository.js'
 import { StreamRegistry } from '../stream/StreamRegistry.js'
 import { archiveSync } from '../stream/archiveSync.js'
 import { fileSync } from '../stream/fileSync.js'
@@ -124,7 +124,7 @@ console.log(`\x1b[35m
 
 const dataDir = options.dataDir
 const registry = new StreamRegistry(async key => {
-  const stream = new Stream()
+  const stream = options.files ? new FileRepository() : new Stream()
   await archiveSync(stream, dataDir, key)
   return stream
 })
@@ -132,8 +132,7 @@ const stream = await registry.open(publicKeyHex)
 
 if (options.files) {
   const folder = typeof options.files === 'string' ? options.files : '.'
-  const archivePath = join(options.dataDir, `${publicKeyHex}.bin`)
-  await fileSync(stream, folder, options.dataDir, archivePath)
+  await fileSync(stream, folder, options.dataDir)
   console.log(`\x1b[32mmirroring files: ${folder}\x1b[0m`)
 }
 

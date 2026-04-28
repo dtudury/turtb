@@ -41,6 +41,18 @@ export class Repository extends Stream {
   }
 
   /**
+   * Iterate commits from newest to oldest.
+   * @yields {{ message: string, date: Date, dataAddress: number, parent: number|undefined }}
+   */
+  * history () {
+    let commit = this.lastCommit
+    while (commit) {
+      yield commit
+      commit = commit.parent !== undefined ? this.decode(commit.parent) : null
+    }
+  }
+
+  /**
    * Copy the current value of workingStream into the repository and append a
    * commit record referencing it by address.
    *

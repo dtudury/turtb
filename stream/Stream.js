@@ -56,6 +56,7 @@ function * changedPaths (stream, addrA, addrB, path = []) {
 export class Stream extends CodecRegistry {
   #recaller
   #signedLength = 0
+  #inSet = false
 
   /**
    * @param {Recaller} [recaller]
@@ -79,7 +80,7 @@ export class Stream extends CodecRegistry {
    */
   append (code) {
     const address = super.append(code)
-    this.#recaller.reportKeyMutation(this, 'length')
+    if (!this.#inSet) this.#recaller.reportKeyMutation(this, 'length')
     return address
   }
 
@@ -141,7 +142,13 @@ export class Stream extends CodecRegistry {
     }
 
     const prevAddress = super.byteLength > 0 ? super.byteLength - 1 : undefined
-    const address = this.append(this.encode(root))
+    this.#inSet = true
+    let address
+    try {
+      address = this.append(this.encode(root))
+    } finally {
+      this.#inSet = false
+    }
     const newAddress = super.byteLength - 1
 
     for (const changed of changedPaths(this, prevAddress, newAddress)) {
