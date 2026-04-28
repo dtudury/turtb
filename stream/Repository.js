@@ -23,7 +23,9 @@ export class Repository extends Stream {
    */
   get lastCommit () {
     if (this.byteLength === 0) return null
-    return this.get()
+    const value = this.get()
+    if (!value || typeof value.dataAddress !== 'number') return null
+    return value
   }
 
   /**

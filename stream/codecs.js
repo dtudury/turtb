@@ -224,10 +224,15 @@ export function makeCodecs (r) {
     }
   }
 
+  const EMPTY_STRING = {
+    encode: v => v === '' && new Uint8Array([EMPTY_STRING.baseFooter]),
+    decode: () => ''
+  }
+
   const STRING = {
     partReaders: [inlineOrAddress],
     encode (v) {
-      if (typeof v === 'string') {
+      if (typeof v === 'string' && v !== '') {
         const bytes = new TextEncoder().encode(v)
         return encodeMultipart([bytes], STRING)
       }
@@ -348,7 +353,12 @@ export function makeCodecs (r) {
   }
 
   const EMPTY_OBJECT = {
-    encode: v => v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0 && new Uint8Array([EMPTY_OBJECT.baseFooter]),
+    encode (v) {
+      if (!v || typeof v !== 'object' || Array.isArray(v)) return
+      const proto = Object.getPrototypeOf(v)
+      if (proto !== Object.prototype && proto !== null) return
+      if (Object.keys(v).length === 0) return new Uint8Array([EMPTY_OBJECT.baseFooter])
+    },
     decode: () => ({})
   }
 
@@ -386,5 +396,5 @@ export function makeCodecs (r) {
     }
   }
 
-  return { UNDEFINED, NULL, FALSE, TRUE, WORD, UINT8ARRAY, STRING, UINT7, FLOAT64, DATE, SIGNATURE, DUPLE, EMPTY_ARRAY, ARRAY, EMPTY_OBJECT, OBJECT, VARIABLE }
+  return { UNDEFINED, NULL, FALSE, TRUE, WORD, UINT8ARRAY, EMPTY_STRING, STRING, UINT7, FLOAT64, DATE, SIGNATURE, DUPLE, EMPTY_ARRAY, ARRAY, EMPTY_OBJECT, OBJECT, VARIABLE }
 }
