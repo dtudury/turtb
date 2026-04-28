@@ -1,5 +1,5 @@
-import { Stream } from '/stream/Stream.js'
-import { hx, mount } from '/stream/hx.js'
+import { Stream } from '../../stream/Stream.js'
+import { hx, mount } from '../../stream/hx.js'
 
 // ── Bootstrap ────────────────────────────────────────────────────────────
 
