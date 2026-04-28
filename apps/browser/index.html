@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>stream browser</title>
+  <link rel="stylesheet" href="/apps/styles/proto.css">
+  <style>
+    header {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1.5px dashed var(--rule);
+      margin-bottom: 1rem;
+    }
+    h1 { font-size: 1.1rem; }
+    .tagline { color: var(--ink-dim); font-size: 0.85rem; }
+    .key-display { font-family: monospace; font-size: 0.7rem; color: var(--ink-dim); margin-left: auto; }
+
+    .entry { display: flex; gap: 0.75rem; padding: 0.2rem 0; }
+    .entry-key { font-family: monospace; color: var(--accent); min-width: 10ch; }
+    .entry-val { font-family: monospace; word-break: break-all; }
+    .bytes { margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>stream browser</h1>
+    <span class="tagline">every write is permanent &amp; every connected client sees the same state</span>
+    <span id="status" class="pill err">disconnected</span>
+    <span id="key-display" class="key-display"></span>
+  </header>
+  <div id="root"></div>
+  <script type="module" src="/apps/browser/main.js"></script>
+</body>
+</html>

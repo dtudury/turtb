@@ -29,6 +29,14 @@ function hexToBytes (hex) {
 export async function webSync (registry, primaryKeyHex, port) {
   const app = express()
 
+  // Serve repo root as static files so browsers can import stream ES modules
+  app.use(express.static('.'))
+
+  // Expose primary key so the browser app knows which stream to open
+  app.get('/api/info', (req, res) => {
+    res.json({ primaryKeyHex })
+  })
+
   // Current value of the primary stream as JSON
   app.get('/', async (req, res) => {
     try {

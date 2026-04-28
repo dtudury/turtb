@@ -40,6 +40,7 @@ describe(import.meta.url, ({ test }) => {
     assert.equal(clientStream.get('hello'), 'world', 'client received server data')
 
     ws.close()
+    for (const c of wss.clients) c.terminate()
     wss.close()
   })
 
@@ -60,6 +61,7 @@ describe(import.meta.url, ({ test }) => {
     assert.equal(serverStream.get('from'), 'client', 'server received client data')
 
     ws.close()
+    for (const c of wss.clients) c.terminate()
     wss.close()
   })
 
@@ -89,6 +91,8 @@ describe(import.meta.url, ({ test }) => {
     assert.equal(s1.byteLength, s2.byteLength, 'both clients converged to same byteLength')
     assert.equal(s1.byteLength, serverStream.byteLength, 'clients match server')
 
-    ws1.close(); ws2.close(); wss.close()
+    ws1.close(); ws2.close()
+    for (const c of wss.clients) c.terminate()
+    wss.close()
   })
 })

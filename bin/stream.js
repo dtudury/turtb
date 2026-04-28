@@ -170,7 +170,39 @@ if (options.verbose) {
 }
 
 if (options.interactive) {
-  Object.assign(globalThis, { registry, stream, signer, name, username, publicKeyHex })
+  const get = (...args) => stream.get(...args)
+  const set = (...args) => stream.set(...args)
+  const ls = () => [...registry].map(([k, s]) => ({ key: k.slice(0, 8) + '…', bytes: s.byteLength }))
+  const connect = (hostPort) => {
+    const [host, port] = hostPort.split(':')
+    return originSync(stream, publicKeyHex, host, +port)
+  }
+
+  Object.assign(globalThis, {
+    // identity
+    name, username, publicKeyHex, signer,
+    // data
+    stream, registry,
+    // shorthands
+    get, set, ls,
+    // networking
+    connect, originSync, outletSync,
+    // sync modules
+    archiveSync, fileSync, s3Sync,
+    // class
+    Stream, StreamRegistry,
+  })
+
+  console.log(`\x1b[36m
+  get(...path)          stream.get() — read a value by path
+  set(value)            stream.set() — write a value
+  ls()                  list all open streams in the registry
+  connect('host:port')  connect this stream to a remote outlet
+  stream / registry     the live stream and registry instances
+  signer                sign / verify data
+  originSync(s,k,h,p)   attach any stream as an origin
+  outletSync(reg,port)  start a new outlet server\x1b[0m`)
+
   const replServer = startRepl({ breakEvalOnSigint: true })
   replServer.setupHistory('.node_repl_history', err => {
     if (err) console.error(err)
