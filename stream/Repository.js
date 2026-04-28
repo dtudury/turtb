@@ -24,7 +24,7 @@ export class Repository extends Stream {
   get lastCommit () {
     if (this.byteLength === 0) return null
     const value = this.get()
-    if (!value || typeof value.dataAddress !== 'number') return null
+    if (!value || typeof value.message !== 'string' || !(value.date instanceof Date)) return null
     return value
   }
 
