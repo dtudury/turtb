@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync } from 'fs'
+import { join } from 'path'
 import { Option, program } from 'commander'
 import { config } from 'dotenv'
 import { question, questionNewPassword } from 'readline-sync'
@@ -131,7 +132,8 @@ const stream = await registry.open(publicKeyHex)
 
 if (options.files) {
   const folder = typeof options.files === 'string' ? options.files : '.'
-  await fileSync(stream, folder, options.dataDir)
+  const archivePath = join(options.dataDir, `${publicKeyHex}.bin`)
+  await fileSync(stream, folder, options.dataDir, archivePath)
   console.log(`\x1b[32mmirroring files: ${folder}\x1b[0m`)
 }
 

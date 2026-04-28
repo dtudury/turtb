@@ -1,5 +1,5 @@
 import { subscribe } from '@parcel/watcher'
-import { mkdir, readFile, readdir, unlink, writeFile } from 'fs/promises'
+import { mkdir, readFile, readdir, stat, unlink, writeFile } from 'fs/promises'
 import { existsSync, readFileSync } from 'fs'
 import { dirname, join, relative } from 'path'
 import { compile } from '@gerhobbelt/gitignore-parser'
@@ -38,6 +38,7 @@ function decodeBytes (bytes) {
  */
 async function readFolder (folder, accepts) {
   const files = {}
+  let maxMtime = 0
   const walk = async dir => {
     let entries
     try { entries = await readdir(dir, { withFileTypes: true }) } catch { return }
@@ -46,11 +47,15 @@ async function readFolder (folder, accepts) {
       const rel = relative(folder, abs)
       if (!accepts(rel)) continue
       if (entry.isDirectory()) await walk(abs)
-      else if (entry.isFile()) files[rel] = decodeBytes(await readFile(abs))
+      else if (entry.isFile()) {
+        const [bytes, info] = await Promise.all([readFile(abs), stat(abs)])
+        files[rel] = decodeBytes(bytes)
+        if (info.mtimeMs > maxMtime) maxMtime = info.mtimeMs
+      }
     }
   }
   await walk(folder)
-  return files
+  return { files, maxMtime }
 }
 
 /**
@@ -115,19 +120,27 @@ function filesEqual (a, b) {
  * @param {import('./Stream.js').Stream} stream
  * @param {string} [folder='.']
  * @param {string} [dataDir='.stream']
+ * @param {string|null} [archivePath=null]  path to the archive file, used for timestamp comparison
  * @returns {Promise<import('@parcel/watcher').AsyncSubscription>}
  */
-export async function fileSync (stream, folder = '.', dataDir = '.stream') {
+export async function fileSync (stream, folder = '.', dataDir = '.stream', archivePath = null) {
   const accepts = buildFilter(folder, dataDir)
 
-  const diskFiles = await readFolder(folder, accepts)
+  let archiveMtime = 0
+  if (archivePath) {
+    try { archiveMtime = (await stat(archivePath)).mtimeMs } catch {}
+  }
+
+  const { files: diskFiles, maxMtime: diskMtime } = await readFolder(folder, accepts)
   const streamValue = stream.byteLength > 0 ? stream.get() : null
-  const streamFiles = streamValue && typeof streamValue === 'object' && !Array.isArray(streamValue)
+  const streamFiles = streamValue && typeof streamValue === 'object' && !Array.isArray(streamValue) && !(streamValue instanceof Uint8Array)
     ? streamValue
     : null
 
+  const diskIsNewer = diskMtime > archiveMtime
+
   // Resolve initial state
-  if (streamFiles) {
+  if (streamFiles && !diskIsNewer) {
     // Stream wins: write stream content to disk
     const toDelete = Object.keys(diskFiles).filter(k => !(k in streamFiles))
     await writeToFolder(folder, streamFiles)

@@ -29,8 +29,9 @@ function * changedPaths (stream, addrA, addrB, path = []) {
   yield path
   const refsA = addrA !== undefined ? stream.decode(addrA, true) : undefined
   const refsB = addrB !== undefined ? stream.decode(addrB, true) : undefined
-  const objA = refsA && typeof refsA === 'object'
-  const objB = refsB && typeof refsB === 'object'
+  const isPlain = v => v != null && typeof v === 'object' && (Array.isArray(v) || Object.getPrototypeOf(v) === Object.prototype || Object.getPrototypeOf(v) === null)
+  const objA = isPlain(refsA)
+  const objB = isPlain(refsB)
   if (objA || objB) {
     const keys = new Set([...Object.keys(refsA ?? {}), ...Object.keys(refsB ?? {})])
     for (const key of keys) {
