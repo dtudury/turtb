@@ -7,6 +7,9 @@ node_modules/
 # git uses this file and should ignore turtleDB stuff
 .turtleDB/
 
+# stream archive data (also excluded from fileSync via buildFilter)
+.stream/
+
 # Optional REPL history
 .node_repl_history
 
