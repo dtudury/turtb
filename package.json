@@ -23,6 +23,7 @@
   },
   "scripts": {
     "start": "./bin/turtb.js --env-file .env",
-    "app:browser": "./bin/stream.js --env-file apps/browser/.env.sample"
+    "app:browser": "./bin/stream.js --env-file apps/browser/.env.sample",
+    "app:components": "./bin/stream.js --env-file apps/components/.env.sample"
   }
 }
