@@ -12,10 +12,8 @@ function setStatus (connected) {
   statusEl.className = 'pill ' + (connected ? 'ok' : 'err')
 }
 
-// Fetch the primary key and stream data from the server
 const info = await fetch('/api/info').then(r => r.json())
 const { primaryKeyHex } = info
-
 keyEl.textContent = primaryKeyHex
 
 // ── Stream setup ─────────────────────────────────────────────────────────
@@ -25,81 +23,91 @@ const stream = new Stream()
 function connectWS () {
   const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
   const ws = new WebSocket(`${protocol}://${location.host}`)
-
   ws.binaryType = 'arraybuffer'
-
-  ws.addEventListener('open', () => {
-    ws.send(primaryKeyHex)
-    setStatus(true)
-  })
-
-  ws.addEventListener('close', () => {
-    setStatus(false)
-    setTimeout(connectWS, 2000)
-  })
-
+  ws.addEventListener('open', () => { ws.send(primaryKeyHex); setStatus(true) })
+  ws.addEventListener('close', () => { setStatus(false); setTimeout(connectWS, 2000) })
   ws.addEventListener('error', () => ws.close())
-
   const writer = stream.makeWritableStream().getWriter()
-
-  ws.addEventListener('message', e => {
-    writer.write(new Uint8Array(e.data)).catch(() => {})
-  })
-
-  return ws
+  ws.addEventListener('message', e => writer.write(new Uint8Array(e.data)).catch(() => {}))
 }
 
 connectWS()
 
-// ── Flash on update (CSS animation, re-triggered on each append) ──────────
+// ── UI state ─────────────────────────────────────────────────────────────
 
-stream.watch('flash', () => {
-  root.classList.remove('flash')
-  void root.offsetWidth // force reflow so animation restarts
-  root.classList.add('flash')
-})
+// A plain object used as a key for recaller so selectedFile changes trigger re-renders.
+const uiState = {}
+let selectedFile = null
+
+function selectFile (path) {
+  selectedFile = path
+  stream.recaller.reportKeyMutation(uiState, 'selected')
+}
+
+// ── Data helpers ─────────────────────────────────────────────────────────
+
+function getFiles () {
+  if (stream.byteLength === 0) return null
+  const commit = stream.get()
+  if (!commit || commit.dataAddress === undefined) return null
+  return stream.decode(commit.dataAddress)
+}
+
+async function saveFile () {
+  if (!selectedFile) return
+  const ta = document.querySelector('.editor-textarea')
+  if (!ta) return
+  await fetch('/api/file', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: selectedFile, content: ta.value })
+  })
+}
 
 // ── Browser console globals ──────────────────────────────────────────────
 
-const get = (...args) => stream.get(...args)
-const set = (...args) => stream.set(...args)
-const render = (nodes, el) => mount(nodes, el, stream.recaller)
-
-Object.assign(window, { stream, hx, mount, render, get, set, primaryKeyHex })
-
-console.log(`%cstream browser\n%c  stream           the live Stream instance
-  get(...path)     read a value — get('user', 'name')
-  set(value)       write a value — set({ hello: 'world' })
-  hx\`...\`          build reactive DOM nodes
-  render(nodes,el) mount nodes reactively into any element
-  primaryKeyHex    this stream's public key`,
-  'color: #58a6ff; font-weight: bold',
-  'color: #8b949e')
+Object.assign(window, { stream, hx, mount, primaryKeyHex, getFiles, selectFile, saveFile })
 
 // ── Rendering ────────────────────────────────────────────────────────────
 
-function renderValue (val, depth = 0) {
-  if (val === null || val === undefined) return hx`<span class="empty">empty</span>`
-  if (typeof val !== 'object') return hx`<span class="entry-val">${String(val)}</span>`
-  if (val instanceof Uint8Array) return hx`<span class="entry-val">${'0x' + Array.from(val.slice(0, 8)).map(b => b.toString(16).padStart(2, '0')).join('') + (val.length > 8 ? '…' : '')}</span>`
-  if (Array.isArray(val)) {
-    return hx`<div style="padding-left: ${depth ? '1rem' : '0'}">${val.map((v, i) => hx`<div class="entry"><span class="entry-key">[${i}]</span>${renderValue(v, depth + 1)}</div>`)}</div>`
-  }
-  const entries = Object.entries(val)
-  if (!entries.length) return hx`<span class="empty">{}</span>`
-  return hx`<div style="padding-left: ${depth ? '1rem' : '0'}">${entries.map(([k, v]) => hx`<div class="entry"><span class="entry-key">${k}</span>${renderValue(v, depth + 1)}</div>`)}</div>`
-}
-
 mount(hx`
-  <div>
-    ${() => {
-      const val = stream.byteLength > 0 ? stream.get() : null
-      return hx`
-        <div>
-          ${renderValue(val)}
-          <div class="bytes dim">${stream.byteLength} bytes</div>
-        </div>
-      `
-    }}
+  <div class="workspace">
+    <div class="file-list">
+      ${() => {
+        stream.recaller.reportKeyAccess(uiState, 'selected')
+        const files = getFiles()
+        if (!files) return hx`<div class="empty-hint">no commits yet</div>`
+        const paths = Object.keys(files).sort()
+        if (!paths.length) return hx`<div class="empty-hint">no files</div>`
+        return paths.map(path => hx`
+          <div class="${'file-item' + (selectedFile === path ? ' selected' : '')}"
+               onclick="${() => selectFile(path)}">
+            <span class="file-path">${path}</span>
+            ${files[path] instanceof Uint8Array ? hx`<span class="dim">bin</span>` : hx``}
+          </div>
+        `)
+      }}
+    </div>
+    <div class="${() => {
+      stream.recaller.reportKeyAccess(uiState, 'selected')
+      return 'editor-panel' + (selectedFile ? '' : ' hidden')
+    }}">
+      ${() => {
+        stream.recaller.reportKeyAccess(uiState, 'selected')
+        if (!selectedFile) return hx`<div class="empty-hint">select a file to edit</div>`
+        const files = getFiles()
+        const content = files?.[selectedFile]
+        const isText = typeof content === 'string'
+        return hx`
+          <div class="editor-header">
+            <span class="editor-filename">${selectedFile}</span>
+            ${isText ? hx`<button onclick="${saveFile}">save</button>` : hx``}
+          </div>
+          <textarea class="editor-textarea"
+                    value="${isText ? content : '[binary file — not editable]'}"
+                    readonly="${!isText}"></textarea>
+        `
+      }}
+    </div>
   </div>
 `, root, stream.recaller)

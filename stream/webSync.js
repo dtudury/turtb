@@ -32,9 +32,28 @@ export async function webSync (registry, primaryKeyHex, port) {
   // Serve repo root as static files so browsers can import stream ES modules
   app.use(express.static('.'))
 
+  app.use(express.json())
+
   // Expose primary key so the browser app knows which stream to open
   app.get('/api/info', (req, res) => {
     res.json({ primaryKeyHex })
+  })
+
+  // Write a single file to the primary stream's latest commit
+  app.post('/api/file', async (req, res) => {
+    try {
+      const { path, content } = req.body
+      if (typeof path !== 'string' || typeof content !== 'string') {
+        return res.status(400).json({ error: 'path and content must be strings' })
+      }
+      const repo = await registry.open(primaryKeyHex)
+      const working = repo.checkout()
+      working.set(path, content)
+      repo.commit(working, `edit ${path}`)
+      res.json({ ok: true })
+    } catch (e) {
+      res.status(500).json({ error: e.message })
+    }
   })
 
   // Current value of the primary stream as JSON
