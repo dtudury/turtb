@@ -1,0 +1,20 @@
+{
+  "counter": {
+    "label": "count",
+    "value": 0
+  },
+  "toggle": {
+    "label": "enabled",
+    "value": false
+  },
+  "textInput": {
+    "label": "message",
+    "placeholder": "type something…",
+    "value": ""
+  },
+  "accordion": {
+    "title": "details",
+    "body": "This section can be expanded and collapsed. Its open state is stored in the stream alongside the component config.",
+    "open": false
+  }
+}

@@ -149,7 +149,7 @@ if (options.s3Bucket) {
 
 if (options.web) {
   const port = +options.web
-  await webSync(registry, publicKeyHex, port)
+  await webSync(registry, publicKeyHex, port, name)
   console.log(`\x1b[32mweb: http://localhost:${port}\x1b[0m`)
 }
 

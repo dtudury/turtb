@@ -1,6 +1,7 @@
 /* eslint-env browser */
 import { Stream } from '../../stream/Stream.js'
-import { hx, mount } from '../../stream/hx.js'
+import { hx } from '../../stream/hx.js'
+import { mount } from '../../stream/mount.js'
 
 // ── Bootstrap ────────────────────────────────────────────────────────────
 
@@ -86,7 +87,7 @@ mount(hx`
         if (!paths.length) return hx`<div class="empty-hint">no files</div>`
         return paths.map(path => hx`
           <div class="${'file-item' + (selectedFile === path ? ' selected' : '')}"
-               onclick="${() => selectFile(path)}">
+               onclick="${() => () => selectFile(path)}">
             <span class="file-path">${path}</span>
             ${files[path] instanceof Uint8Array ? hx`<span class="dim">bin</span>` : hx``}
           </div>
@@ -105,7 +106,7 @@ mount(hx`
         return hx`
           <div class="editor-header">
             <span class="editor-filename">${selectedFile}</span>
-            ${isText ? hx`<button onclick="${saveFile}">save</button>` : hx``}
+            ${isText ? hx`<button onclick="${() => saveFile}">save</button>` : hx``}
           </div>
           <textarea class="editor-textarea"
                     value="${isText ? editContent : '[binary file — not editable]'}"

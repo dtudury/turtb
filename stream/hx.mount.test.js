@@ -1,5 +1,6 @@
 import { describe } from './utils/testing.js'
-import { hx, mount } from './hx.js'
+import { hx } from './hx.js'
+import { mount } from './mount.js'
 import { Stream } from './Stream.js'
 
 const IS_NODE = typeof process !== 'undefined' && process.versions?.node != null

@@ -26,7 +26,7 @@ function hexToBytes (hex) {
  * @param {number} port
  * @returns {Promise<import('http').Server>}
  */
-export async function webSync (registry, primaryKeyHex, port) {
+export async function webSync (registry, primaryKeyHex, port, name) {
   const app = express()
 
   // Serve repo root as static files so browsers can import stream ES modules
@@ -36,7 +36,7 @@ export async function webSync (registry, primaryKeyHex, port) {
 
   // Expose primary key so the browser app knows which stream to open
   app.get('/api/info', (req, res) => {
-    res.json({ primaryKeyHex })
+    res.json({ primaryKeyHex, name })
   })
 
   // Write a single file to the primary stream's latest commit

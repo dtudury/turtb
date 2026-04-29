@@ -137,7 +137,14 @@ export class Stream extends CodecRegistry {
     if (path.length === 0 || baseAddress < 0) {
       // Whole-value set: encode and store, bypassing Stream.append so 'length'
       // is not fired — changedPaths will emit the right path-level mutations.
-      super.append(this.encode(value))
+      let encodedValue = value
+      if (path.length > 0) {
+        // Empty stream with a path: build nested object from path
+        let obj = value
+        for (let i = path.length - 1; i >= 0; i--) obj = { [path[i]]: obj }
+        encodedValue = obj
+      }
+      super.append(this.encode(encodedValue))
     } else {
       // Path update: navigate via asRefs to avoid decoding untouched subtrees,
       // then rebuild only the changed path bottom-up, reusing sibling addresses.
@@ -218,6 +225,9 @@ export class Stream extends CodecRegistry {
   }
 
   // ── Signing ──────────────────────────────────────────────────────────────
+
+  /** Byte length that has been covered by a signature. */
+  get signedLength () { return this.#signedLength }
 
   /**
    * Sign the bytes appended since the last signature (or from the start).
