@@ -135,7 +135,7 @@ class HxSignIn extends HTMLElement {
     const ws = new WebSocket(`${protocol}://${location.host}`)
     ws.binaryType = 'arraybuffer'
 
-    ws.addEventListener('open', () => {
+    ws.addEventListener('open', async () => {
       ws.send(publicKeyHex)
 
       // Server → local
@@ -154,17 +154,24 @@ class HxSignIn extends HTMLElement {
         } catch {}
       })()
 
-      // Auto-sign: when new bytes arrive, sign them so the server accepts them.
-      // Tracks lastSignByteLength externally to avoid re-triggering on the
-      // signature chunk that sign() itself appends.
-      let lastSignByteLength = stream.byteLength
-      stream.recaller.watch('auto-sign', async () => {
-        stream.recaller.reportKeyAccess(stream, 'length')
-        if (stream.byteLength <= lastSignByteLength) return
-        lastSignByteLength = stream.byteLength  // lock before async
-        await stream.sign(signer, streamName)
-        lastSignByteLength = stream.byteLength  // update past sig chunk
-      })
+      // Sign current state so the server accepts our writes
+      await stream.sign(signer, streamName)
+
+      // Patch stream.set so future user writes trigger a sign.
+      // This avoids watching stream 'length' which fires on every incoming
+      // WS chunk and causes an infinite sign loop.
+      const origSet = stream.set.bind(stream)
+      let signTimer = null
+      stream.set = (...args) => {
+        origSet(...args)
+        clearTimeout(signTimer)
+        signTimer = setTimeout(() => stream.sign(signer, streamName).catch(console.error), 0)
+      }
+
+      ws.addEventListener('close', () => {
+        stream.set = origSet
+        clearTimeout(signTimer)
+      }, { once: true })
     })
 
     ws.addEventListener('close', () => {
