@@ -76,16 +76,24 @@ export async function webSync (registry, primaryKeyHex, port, name, keyIteration
     }
   })
 
-  // Full wire-format archive for a stream (useful for bulk transfer / debugging)
+  // Full wire-format snapshot of a stream's current chunks (finite — does not
+  // stream future appends). Used by browsers to bootstrap before WebSocket sync
+  // so both sides share the same address space.
   app.get('/streams/:key/raw', async (req, res) => {
     try {
       const stream = await registry.open(req.params.key)
       res.set('Content-Type', 'application/octet-stream')
+      const target = stream.byteLength  // snapshot length; stop here
+      if (target === 0) { res.end(); return }
       const reader = stream.makeReadableStream().getReader()
       res.on('close', () => reader.cancel().catch(() => {}))
+      let contentSent = 0
       const pump = async () => {
+        if (contentSent >= target) { reader.cancel().catch(() => {}); res.end(); return }
         const { value, done } = await reader.read()
-        if (done || !res.writable) return
+        if (done || !res.writable) { res.end(); return }
+        // wire frame: [4-byte LE length][chunk bytes] — read length to track progress
+        contentSent += (value[0]) | (value[1] << 8) | (value[2] << 16) | (value[3] << 24)
         res.write(Buffer.from(value))
         pump()
       }

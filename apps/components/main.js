@@ -12,8 +12,35 @@ import { createToaster } from './components/toast.js'
 
 const stream = new Stream()
 
-const state = await fetch('/apps/components/state.json').then(r => r.json())
-stream.set(state)
+// ── Bootstrap ─────────────────────────────────────────────────────────────
+// Load the server's raw stream bytes before connecting via WebSocket.
+// This ensures both sides share the same address space — chunks contain
+// embedded addresses that are only valid in the stream they were created in.
+// Without this, any structural chunk from one peer would reference addresses
+// that don't exist on the other, causing decode failures and rejected sigs.
+
+let serverInfo = null
+try {
+  serverInfo = await fetch('/api/info').then(r => r.json())
+  if (serverInfo.primaryKeyHex) {
+    const response = await fetch(`/streams/${serverInfo.primaryKeyHex}/raw`)
+    if (response.ok) {
+      const reader = response.body.getReader()
+      const writer = stream.makeWritableStream().getWriter()
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        await writer.write(value)
+      }
+    }
+  }
+} catch { /* server not available */ }
+
+// Fall back to defaults if stream is still empty (first run or offline)
+if (stream.byteLength === 0) {
+  const defaults = await fetch('/apps/components/state.json').then(r => r.json())
+  stream.set(defaults)
+}
 
 // ── Shared UI state ───────────────────────────────────────────────────────
 
@@ -46,12 +73,8 @@ signIn.cancelable = true
 signIn.syncState = syncState
 signIn.toaster = toaster
 
-// Pre-populate stream name from server if available
-try {
-  const info = await fetch('/api/info').then(r => r.json())
-  if (info.name) signIn.streamName = info.name
-  if (info.keyIterations) signIn.keyIterations = info.keyIterations
-} catch { /* server not available, use default */ }
+if (serverInfo?.name) signIn.streamName = serverInfo.name
+if (serverInfo?.keyIterations) signIn.keyIterations = serverInfo.keyIterations
 
 // ── Status badge ──────────────────────────────────────────────────────────
 
