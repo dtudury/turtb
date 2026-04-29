@@ -30,6 +30,20 @@ export async function archiveSync (stream, dir, publicKeyHex) {
     // No existing archive — start fresh
   }
 
+  // Compact: discard accumulated history and keep only the current value.
+  // This keeps the archive small regardless of how many writes have
+  // accumulated. Skipped silently for stream types (e.g. FileRepository)
+  // that don't support round-trip get/set compaction.
+  if (stream.byteLength > 0) {
+    try {
+      const value = stream.get()
+      if (value !== undefined) {
+        stream._reset()
+        stream.set(value)
+      }
+    } catch { /* not compactable */ }
+  }
+
   // Rewrite file from chunk 0 and keep appending as new chunks arrive.
   // makeReadableStream() emits all existing chunks then waits indefinitely,
   // so this loop runs for the lifetime of the process.

@@ -62,6 +62,17 @@ export class Addressifier {
   }
 
   /**
+   * Clear all stored chunks and reset the store to empty.
+   * Any readers waiting on future chunks will never resolve after this call;
+   * use only when no live readers exist (e.g. before an archiveSync write loop).
+   */
+  _reset () {
+    this.#chunks = []
+    this.#contentMap = new ContentMap()
+    this.#nextChunk = new Promise(resolve => { this.#resolveNext = resolve })
+  }
+
+  /**
    * Clone this store up to (and including) `address`.
    * @param {number} address
    * @returns {Addressifier}

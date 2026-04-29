@@ -229,6 +229,12 @@ export class Stream extends CodecRegistry {
   /** Byte length that has been covered by a signature. */
   get signedLength () { return this.#signedLength }
 
+  /** @override Also resets the signed-length cursor. */
+  _reset () {
+    super._reset()
+    this.#signedLength = 0
+  }
+
   /**
    * Sign the bytes appended since the last signature (or from the start).
    * Appends the signature as a new chunk and advances the signed cursor.
