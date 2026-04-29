@@ -161,16 +161,13 @@ class HxSignIn extends HTMLElement {
       // This avoids watching stream 'length' which fires on every incoming
       // WS chunk and causes an infinite sign loop.
       const origSet = stream.set.bind(stream)
-      let signTimer = null
       stream.set = (...args) => {
         origSet(...args)
-        clearTimeout(signTimer)
-        signTimer = setTimeout(() => stream.sign(signer, streamName).catch(console.error), 0)
+        stream.sign(signer, streamName).catch(console.error)
       }
 
       ws.addEventListener('close', () => {
         stream.set = origSet
-        clearTimeout(signTimer)
       }, { once: true })
     })
 
