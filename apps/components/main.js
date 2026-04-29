@@ -93,9 +93,11 @@ console.log('stream.set(key, field, value)    — update any field')
 console.log('toaster.show(message, type)      — trigger a toast (types: success/error/info/warning)')
 console.log('')
 console.log('examples:')
-for (const [key, val] of Object.entries(state)) {
-  for (const [field, v] of Object.entries(val)) {
-    console.log(`  stream.set('${key}', '${field}', ${JSON.stringify(v)})`)
+for (const [key, val] of Object.entries(stream.get() ?? {})) {
+  if (val && typeof val === 'object') {
+    for (const [field, v] of Object.entries(val)) {
+      console.log(`  stream.set('${key}', '${field}', ${JSON.stringify(v)})`)
+    }
   }
 }
 console.groupEnd()
