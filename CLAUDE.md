@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Commits
+
+At the end of each response where code was changed, commit it. Prefer over-committing to under-committing — don't wait for a "perfect" stopping point. The end of a response is always the right moment to evaluate and commit.
+
 ## Commands
 
 ```bash
