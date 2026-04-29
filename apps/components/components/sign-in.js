@@ -6,6 +6,7 @@ import { Signer } from '../../../stream/Signer.js'
 class HxSignIn extends HTMLElement {
   #stream = null
   #streamName = 'components'
+  #keyIterations = 100000
   #cancelable = false
   #toaster = null
   #syncState = null
@@ -13,6 +14,7 @@ class HxSignIn extends HTMLElement {
 
   set stream (s) { this.#stream = s }
   set streamName (n) { this.#streamName = n }
+  set keyIterations (n) { this.#keyIterations = n }
   set cancelable (v) { this.#cancelable = !!v }
   set toaster (t) { this.#toaster = t }
   set syncState (s) { this.#syncState = s }
@@ -89,7 +91,7 @@ class HxSignIn extends HTMLElement {
 
     let signer, publicKeyHex
     try {
-      signer = new Signer(username, password)
+      signer = new Signer(username, password, this.#keyIterations)
       const { publicKey } = await signer.keysFor(streamName)
       publicKeyHex = Array.from(publicKey).map(b => b.toString(16).padStart(2, '0')).join('')
     } catch (e) {

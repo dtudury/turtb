@@ -50,6 +50,7 @@ signIn.toaster = toaster
 try {
   const info = await fetch('/api/info').then(r => r.json())
   if (info.name) signIn.streamName = info.name
+  if (info.keyIterations) signIn.keyIterations = info.keyIterations
 } catch { /* server not available, use default */ }
 
 // ── Status badge ──────────────────────────────────────────────────────────

@@ -87,6 +87,12 @@ program
       .env('STREAM_INTERACTIVE')
   )
   .addOption(
+    new Option('--key-iterations <number>', 'PBKDF2 iterations for key derivation (lower = faster startup, less secure)')
+      .env('STREAM_KEY_ITERATIONS')
+      .default(100000)
+      .argParser(Number)
+  )
+  .addOption(
     new Option('--verbose', 'enable verbose logging')
       .env('STREAM_VERBOSE')
   )
@@ -105,7 +111,7 @@ options.name ||= question('Name: ')
 options.username ||= question('Username: ')
 const password = options.password || questionNewPassword('Password [ATTENTION!: Backspace won\'t work here]: ', { min: 4, max: 999 })
 
-const signer = new Signer(options.username, password)
+const signer = new Signer(options.username, password, options.keyIterations)
 const { publicKey } = await signer.keysFor(options.name)
 const publicKeyHex = Array.from(publicKey).map(b => b.toString(16).padStart(2, '0')).join('')
 
@@ -149,7 +155,7 @@ if (options.s3Bucket) {
 
 if (options.web) {
   const port = +options.web
-  await webSync(registry, publicKeyHex, port, name)
+  await webSync(registry, publicKeyHex, port, name, options.keyIterations)
   console.log(`\x1b[32mweb: http://localhost:${port}\x1b[0m`)
 }
 

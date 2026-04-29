@@ -35,14 +35,17 @@ async function sha256 (uint8Array) {
 export class Signer {
   #keysByName = {}
   #hashwordPromise
+  #iterations
 
   /**
    * @param {string} username
    * @param {string} password
+   * @param {number} [iterations=100000]
    */
-  constructor (username, password) {
+  constructor (username, password, iterations = 100000) {
     this.username = username
-    this.#hashwordPromise = deriveKey(username, password)
+    this.#iterations = iterations
+    this.#hashwordPromise = deriveKey(username, password, iterations)
   }
 
   /**
@@ -52,7 +55,7 @@ export class Signer {
   async keysFor (streamName) {
     if (!this.#keysByName[streamName]) {
       const hashword = await this.#hashwordPromise
-      const privateKey = await deriveKey(streamName, hashword)
+      const privateKey = await deriveKey(streamName, hashword, this.#iterations)
       const publicKey = getPublicKey(privateKey)
       this.#keysByName[streamName] = { privateKey, publicKey }
     }
