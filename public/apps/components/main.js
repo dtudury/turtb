@@ -1,6 +1,6 @@
 /* eslint-env browser */
 import { Repository } from '../../stream/Repository.js'
-import { hx } from '../../stream/hx.js'
+import { turtle } from '../../stream/turtle.js'
 import { mount } from '../../stream/mount.js'
 import './components/counter.js'
 import './components/toggle.js'
@@ -61,13 +61,13 @@ function makeComponent (tag, key) {
 
 // ── Toast container (body-level, renders outside the app root) ────────────
 
-const toastContainer = document.createElement('hx-toast-container')
+const toastContainer = document.createElement('turtle-toast-container')
 toastContainer.toaster = toaster
 document.body.appendChild(toastContainer)
 
 // ── Sign-in ───────────────────────────────────────────────────────────────
 
-const signIn = document.createElement('hx-sign-in')
+const signIn = document.createElement('turtle-sign-in')
 signIn.stream = stream
 signIn.cancelable = true
 signIn.syncState = syncState
@@ -78,7 +78,7 @@ if (serverInfo?.keyIterations) signIn.keyIterations = serverInfo.keyIterations
 
 // ── Status badge ──────────────────────────────────────────────────────────
 
-const statusBadge = document.createElement('hx-status-badge')
+const statusBadge = document.createElement('turtle-status-badge')
 statusBadge.syncState = syncState
 statusBadge.recaller = stream.recaller
 
@@ -104,7 +104,7 @@ console.groupEnd()
 
 // ── Render ────────────────────────────────────────────────────────────────
 
-mount(hx`
+mount(turtle`
   <div>
     <div class="demo-section">
       <div class="demo-label">sync  ${statusBadge}</div>
@@ -112,19 +112,19 @@ mount(hx`
     </div>
     <div class="demo-section">
       <div class="demo-label">counter</div>
-      ${makeComponent('hx-counter', 'counter')}
+      ${makeComponent('turtle-counter', 'counter')}
     </div>
     <div class="demo-section">
       <div class="demo-label">toggle</div>
-      ${makeComponent('hx-toggle', 'toggle')}
+      ${makeComponent('turtle-toggle', 'toggle')}
     </div>
     <div class="demo-section">
       <div class="demo-label">text input</div>
-      ${makeComponent('hx-text-input', 'textInput')}
+      ${makeComponent('turtle-text-input', 'textInput')}
     </div>
     <div class="demo-section">
       <div class="demo-label">accordion</div>
-      ${makeComponent('hx-accordion', 'accordion')}
+      ${makeComponent('turtle-accordion', 'accordion')}
     </div>
   </div>
 `, document.getElementById('root'), stream.recaller)

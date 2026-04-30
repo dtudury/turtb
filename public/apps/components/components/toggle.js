@@ -1,8 +1,8 @@
 /* eslint-env browser */
-import { hx } from '../../../stream/hx.js'
+import { turtle } from '../../../stream/turtle.js'
 import { mount } from '../../../stream/mount.js'
 
-class HxToggle extends HTMLElement {
+class TurtleToggle extends HTMLElement {
   #stream = null
   #key = null
 
@@ -14,7 +14,7 @@ class HxToggle extends HTMLElement {
     const stream = this.#stream
     const key = this.#key
     const toggle = () => stream.set(key, 'value', !stream.get(key, 'value'))
-    mount(hx`
+    mount(turtle`
       <style>
         :host { display: inline-flex; align-items: center; gap: 0.75rem; }
         button {
@@ -37,4 +37,4 @@ class HxToggle extends HTMLElement {
   }
 }
 
-customElements.define('hx-toggle', HxToggle)
+customElements.define('turtle-toggle', TurtleToggle)

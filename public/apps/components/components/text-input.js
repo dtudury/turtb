@@ -1,8 +1,8 @@
 /* eslint-env browser */
-import { hx } from '../../../stream/hx.js'
+import { turtle } from '../../../stream/turtle.js'
 import { mount } from '../../../stream/mount.js'
 
-class HxTextInput extends HTMLElement {
+class TurtleTextInput extends HTMLElement {
   #stream = null
   #key = null
 
@@ -13,7 +13,7 @@ class HxTextInput extends HTMLElement {
     this.attachShadow({ mode: 'open' })
     const stream = this.#stream
     const key = this.#key
-    mount(hx`
+    mount(turtle`
       <style>
         :host { display: flex; flex-direction: column; gap: 0.4rem; }
         label { font-size: 0.75rem; color: var(--ink-dim, #888); text-transform: uppercase; letter-spacing: 0.05em; }
@@ -31,4 +31,4 @@ class HxTextInput extends HTMLElement {
   }
 }
 
-customElements.define('hx-text-input', HxTextInput)
+customElements.define('turtle-text-input', TurtleTextInput)

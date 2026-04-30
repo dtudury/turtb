@@ -1,9 +1,9 @@
 /* eslint-env browser */
-import { hx } from '../../../stream/hx.js'
+import { turtle } from '../../../stream/turtle.js'
 import { mount } from '../../../stream/mount.js'
 import { Signer } from '../../../stream/Signer.js'
 
-class HxSignIn extends HTMLElement {
+class TurtleSignIn extends HTMLElement {
   #stream = null
   #streamName = 'components'
   #keyIterations = 100000
@@ -36,7 +36,7 @@ class HxSignIn extends HTMLElement {
     const syncState = this.#syncState
     const ui = this.#ui
 
-    mount(hx`
+    mount(turtle`
       <style>
         :host { display: block; font-size: 0.9rem; }
         form   { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
@@ -53,29 +53,29 @@ class HxSignIn extends HTMLElement {
 
         // Settled states — show a re-open link instead of the full form
         if (!ui.showForm || status === 'server-sync' || status === 'reconnecting') {
-          return hx`
+          return turtle`
             <div class="row">
               ${status === 'server-sync' || status === 'reconnecting'
                 ? null
-                : hx`<button class="link" onclick="${() => () => this.#patchUi({ showForm: true, error: null })}">sign in</button>`
+                : turtle`<button class="link" onclick="${() => () => this.#patchUi({ showForm: true, error: null })}">sign in</button>`
               }
             </div>
           `
         }
 
-        return hx`
+        return turtle`
           <form onsubmit="${() => e => { e.preventDefault(); this.#signIn(e.target) }}">
             <input name="streamName" placeholder="stream name" value="${this.#streamName}" required />
             <input name="username" placeholder="username" autocomplete="username" required />
             <input name="password" type="password" placeholder="password" autocomplete="current-password" required />
             <button type="submit">sign in</button>
             ${this.#cancelable
-              ? hx`<button type="button" onclick="${() => () => this.#cancel()}">cancel</button>`
+              ? turtle`<button type="button" onclick="${() => () => this.#cancel()}">cancel</button>`
               : null
             }
             ${() => {
               recaller.reportKeyAccess(ui, 'showForm')
-              return ui.error ? hx`<span class="error">${ui.error}</span>` : null
+              return ui.error ? turtle`<span class="error">${ui.error}</span>` : null
             }}
           </form>
         `
@@ -181,4 +181,4 @@ class HxSignIn extends HTMLElement {
   }
 }
 
-customElements.define('hx-sign-in', HxSignIn)
+customElements.define('turtle-sign-in', TurtleSignIn)

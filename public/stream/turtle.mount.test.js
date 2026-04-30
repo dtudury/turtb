@@ -1,5 +1,5 @@
 import { describe } from './utils/testing.js'
-import { hx } from './hx.js'
+import { turtle } from './turtle.js'
 import { mount } from './mount.js'
 import { Stream } from './Stream.js'
 
@@ -14,7 +14,7 @@ if (IS_NODE) {
 describe(import.meta.url, ({ test }) => {
   test('mounts a static element with text', ({ assert }) => {
     const container = document.createElement('div')
-    mount(hx`<span>hello</span>`, container)
+    mount(turtle`<span>hello</span>`, container)
     const span = container.childNodes[0]
     assert.equal(span.textContent, 'hello')
   })
@@ -23,7 +23,7 @@ describe(import.meta.url, ({ test }) => {
     const stream = new Stream()
     stream.set({ greeting: 'hello' })
     const container = document.createElement('div')
-    mount(hx`<span>${() => stream.get('greeting')}</span>`, container, stream.recaller)
+    mount(turtle`<span>${() => stream.get('greeting')}</span>`, container, stream.recaller)
 
     const span = container.childNodes[0]
     assert.equal(span.textContent, 'hello', 'initial render')
@@ -37,7 +37,7 @@ describe(import.meta.url, ({ test }) => {
     const stream = new Stream()
     stream.set({ cls: 'active' })
     const container = document.createElement('div')
-    mount(hx`<div class=${() => stream.get('cls')}></div>`, container, stream.recaller)
+    mount(turtle`<div class=${() => stream.get('cls')}></div>`, container, stream.recaller)
 
     const div = container.childNodes[0]
     assert.equal(div.getAttribute('class'), 'active', 'initial attribute')
@@ -52,7 +52,7 @@ describe(import.meta.url, ({ test }) => {
     stream.set({ a: 'unchanged', b: 'watched' })
     let renderCount = 0
     const container = document.createElement('div')
-    mount(hx`<span>${() => { renderCount++; return stream.get('b') }}</span>`, container, stream.recaller)
+    mount(turtle`<span>${() => { renderCount++; return stream.get('b') }}</span>`, container, stream.recaller)
 
     assert.equal(renderCount, 1, 'initial render')
 

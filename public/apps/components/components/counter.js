@@ -1,8 +1,8 @@
 /* eslint-env browser */
-import { hx } from '../../../stream/hx.js'
+import { turtle } from '../../../stream/turtle.js'
 import { mount } from '../../../stream/mount.js'
 
-class HxCounter extends HTMLElement {
+class TurtleCounter extends HTMLElement {
   #stream = null
   #key = null
 
@@ -15,7 +15,7 @@ class HxCounter extends HTMLElement {
     const key = this.#key
     const inc = () => stream.set(key, 'value', (stream.get(key, 'value') ?? 0) + 1)
     const dec = () => stream.set(key, 'value', (stream.get(key, 'value') ?? 0) - 1)
-    mount(hx`
+    mount(turtle`
       <style>
         :host { display: inline-flex; align-items: center; gap: 0.75rem; font-family: monospace; font-size: 1.25rem; }
         button { font-family: monospace; font-size: 1rem; width: 2rem; padding: 0.15rem 0; text-align: center; cursor: pointer; }
@@ -30,4 +30,4 @@ class HxCounter extends HTMLElement {
   }
 }
 
-customElements.define('hx-counter', HxCounter)
+customElements.define('turtle-counter', TurtleCounter)

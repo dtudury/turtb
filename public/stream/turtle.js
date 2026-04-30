@@ -1,10 +1,10 @@
 /**
- * hx — HTML template parser
+ * turtle — HTML template parser
  *
  * Usage:
- *   const nodes = hx`<div class=${cls}>${() => stream.get('name')}</div>`
+ *   const nodes = turtle`<div class=${cls}>${() => stream.get('name')}</div>`
  *
- * Parses the template into a virtual tree of HxElement / HxText nodes.
+ * Parses the template into a virtual tree of TurtleElement / TurtleText nodes.
  * Interpolated values (slots) are stored as-is — functions are NOT called here.
  * Pass the result to `mount` (./mount.js) to render it into the DOM.
  */
@@ -16,7 +16,7 @@ const VOID = new Set([
 
 // ── Virtual tree types ───────────────────────────────────────────────────
 
-export class HxElement {
+export class TurtleElement {
   constructor (tag, attrs, children) {
     this.tag = tag
     this.attrs = attrs       // Array.<{name, value}|any>
@@ -24,7 +24,7 @@ export class HxElement {
   }
 }
 
-export class HxText {
+export class TurtleText {
   constructor (value) {
     this.value = value // string
   }
@@ -165,7 +165,7 @@ function parseElement (sc) {
   if (sc.isSlot()) return sc.advance().slot
   if (sc.peek() !== '<') {
     const text = sc.readTo(/</)
-    return text ? new HxText(text) : null
+    return text ? new TurtleText(text) : null
   }
   sc.assertChar(/</)
   const closing = sc.readIf('/')
@@ -176,7 +176,7 @@ function parseElement (sc) {
   sc.assertChar(/>/)
   if (closing) return { _closing: tag }
   const children = selfClose ? [] : parseChildren(sc, tag)
-  return new HxElement(tag, attrs, children)
+  return new TurtleElement(tag, attrs, children)
 }
 
 function parseChildren (sc, closingTag) {
@@ -194,9 +194,9 @@ function parseChildren (sc, closingTag) {
  * Tagged template literal — parses the template into a virtual tree.
  * @param {TemplateStringsArray} strings
  * @param {...any} values
- * @returns {Array} array of HxElement / HxText / slot values
+ * @returns {Array} array of TurtleElement / TurtleText / slot values
  */
-export function hx (strings, ...values) {
+export function turtle (strings, ...values) {
   const sc = new Scanner(strings, values)
   return parseChildren(sc, null)
 }

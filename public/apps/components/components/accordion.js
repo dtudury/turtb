@@ -1,8 +1,8 @@
 /* eslint-env browser */
-import { hx } from '../../../stream/hx.js'
+import { turtle } from '../../../stream/turtle.js'
 import { mount } from '../../../stream/mount.js'
 
-class HxAccordion extends HTMLElement {
+class TurtleAccordion extends HTMLElement {
   #stream = null
   #key = null
 
@@ -14,7 +14,7 @@ class HxAccordion extends HTMLElement {
     const stream = this.#stream
     const key = this.#key
     const toggle = () => stream.set(key, 'open', !stream.get(key, 'open'))
-    mount(hx`
+    mount(turtle`
       <style>
         :host { display: block; border: 1px solid var(--rule, #ccc); border-radius: 4px; overflow: hidden; }
         button {
@@ -31,9 +31,9 @@ class HxAccordion extends HTMLElement {
         <span>${() => stream.get(key, 'title')}</span>
         <span class="${() => 'arrow' + (stream.get(key, 'open') ? ' open' : '')}">▶</span>
       </button>
-      ${() => stream.get(key, 'open') ? hx`<div class="body">${() => stream.get(key, 'body')}</div>` : null}
+      ${() => stream.get(key, 'open') ? turtle`<div class="body">${() => stream.get(key, 'body')}</div>` : null}
     `, this.shadowRoot, stream.recaller)
   }
 }
 
-customElements.define('hx-accordion', HxAccordion)
+customElements.define('turtle-accordion', TurtleAccordion)

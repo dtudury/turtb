@@ -1,5 +1,5 @@
 /* eslint-env browser */
-import { hx } from '../../../stream/hx.js'
+import { turtle } from '../../../stream/turtle.js'
 import { mount } from '../../../stream/mount.js'
 
 /**
@@ -31,9 +31,9 @@ export function createToaster (recaller) {
   return toaster
 }
 
-// ── HxToastContainer ─────────────────────────────────────────────────────
+// ── TurtleToastContainer ─────────────────────────────────────────────────────
 
-class HxToastContainer extends HTMLElement {
+class TurtleToastContainer extends HTMLElement {
   #toaster = null
   set toaster (t) { this.#toaster = t }
 
@@ -42,7 +42,7 @@ class HxToastContainer extends HTMLElement {
     const { state, recaller } = this.#toaster
     const dismiss = id => this.#toaster.dismiss(id)
 
-    mount(hx`
+    mount(turtle`
       <style>
         :host {
           position: fixed; bottom: 1.5rem; right: 1.5rem;
@@ -66,7 +66,7 @@ class HxToastContainer extends HTMLElement {
       </style>
       ${() => {
         recaller.reportKeyAccess(state, 'items')
-        return state.items.map(({ id, message, type }) => hx`
+        return state.items.map(({ id, message, type }) => turtle`
           <div class="${'toast ' + type}">
             <span>${message}</span>
             <button onclick="${() => () => dismiss(id)}">×</button>
@@ -77,4 +77,4 @@ class HxToastContainer extends HTMLElement {
   }
 }
 
-customElements.define('hx-toast-container', HxToastContainer)
+customElements.define('turtle-toast-container', TurtleToastContainer)

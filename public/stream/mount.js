@@ -1,7 +1,7 @@
 /**
- * mount — reactive DOM renderer for hx virtual trees
+ * mount — reactive DOM renderer for turtle virtual trees
  *
- * Cells are functions interpolated into an hx template. There are four positions
+ * Cells are functions interpolated into a turtle template. There are four positions
  * a cell can appear, each with a consistent contract: the first argument is always
  * the relevant DOM element (or container), and the return value is what gets applied.
  *
@@ -19,7 +19,7 @@
  * That handler's first argument is the DOM Event.
  */
 
-import { HxElement, HxText } from './hx.js'
+import { TurtleElement, TurtleText } from './turtle.js'
 
 /**
  * Mount an array of virtual nodes (result of hx``) into `container`.
@@ -39,7 +39,7 @@ function mountNode (node, container, recaller) {
     node.forEach(n => mountNode(n, container, recaller))
     return
   }
-  if (node instanceof HxElement) {
+  if (node instanceof TurtleElement) {
     const el = document.createElementNS(
       node.attrs.find(a => a?.name === 'xmlns')?.value ?? 'http://www.w3.org/1999/xhtml',
       node.tag
@@ -52,7 +52,7 @@ function mountNode (node, container, recaller) {
     container.appendChild(el)
     return
   }
-  if (node instanceof HxText) {
+  if (node instanceof TurtleText) {
     container.appendChild(document.createTextNode(node.value))
     return
   }
@@ -80,7 +80,7 @@ function mountSlot (cell, container, recaller) {
   container.appendChild(start)
   container.appendChild(end)
 
-  recaller.watch(cell.name || '(hx cell)', () => {
+  recaller.watch(cell.name || '(turtle cell)', () => {
     while (start.nextSibling !== end) start.nextSibling.remove()
     const frag = document.createDocumentFragment()
     mountNode(cell(container), frag, recaller)

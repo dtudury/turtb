@@ -1,5 +1,5 @@
 /* eslint-env browser */
-import { hx } from '../../../stream/hx.js'
+import { turtle } from '../../../stream/turtle.js'
 import { mount } from '../../../stream/mount.js'
 
 const LABELS = {
@@ -11,7 +11,7 @@ const LABELS = {
   'disconnected':{ text: 'disconnected',  cls: 'err'    },
 }
 
-class HxStatusBadge extends HTMLElement {
+class TurtleStatusBadge extends HTMLElement {
   #syncState = null
   #recaller = null
 
@@ -23,7 +23,7 @@ class HxStatusBadge extends HTMLElement {
     const syncState = this.#syncState
     const recaller = this.#recaller
 
-    mount(hx`
+    mount(turtle`
       <style>
         :host { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; }
         .pill { padding: 0.15rem 0.55rem; border-radius: 999px; white-space: nowrap; }
@@ -36,8 +36,8 @@ class HxStatusBadge extends HTMLElement {
       ${() => {
         recaller.reportKeyAccess(syncState, 'status')
         const { text, cls } = LABELS[syncState.status] ?? LABELS[null]
-        return hx`
-          ${syncState.username ? hx`<span class="username">${syncState.username}</span>` : null}
+        return turtle`
+          ${syncState.username ? turtle`<span class="username">${syncState.username}</span>` : null}
           <span class="${'pill ' + cls}">${text}</span>
         `
       }}
@@ -45,4 +45,4 @@ class HxStatusBadge extends HTMLElement {
   }
 }
 
-customElements.define('hx-status-badge', HxStatusBadge)
+customElements.define('turtle-status-badge', TurtleStatusBadge)

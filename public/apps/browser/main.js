@@ -1,6 +1,6 @@
 /* eslint-env browser */
 import { Repository } from '../../stream/Repository.js'
-import { hx } from '../../stream/hx.js'
+import { turtle } from '../../stream/turtle.js'
 import { mount } from '../../stream/mount.js'
 
 // ── Bootstrap ────────────────────────────────────────────────────────────
@@ -71,24 +71,24 @@ async function saveFile () {
 
 // ── Browser console globals ──────────────────────────────────────────────
 
-Object.assign(window, { stream, hx, mount, primaryKeyHex, getFiles, selectFile, saveFile })
+Object.assign(window, { stream, turtle, mount, primaryKeyHex, getFiles, selectFile, saveFile })
 
 // ── Rendering ────────────────────────────────────────────────────────────
 
-mount(hx`
+mount(turtle`
   <div class="workspace">
     <div class="file-list">
       ${() => {
         stream.recaller.reportKeyAccess(uiState, 'selected')
         const files = getFiles()
-        if (!files) return hx`<div class="empty-hint">no commits yet</div>`
+        if (!files) return turtle`<div class="empty-hint">no commits yet</div>`
         const paths = Object.keys(files).sort()
-        if (!paths.length) return hx`<div class="empty-hint">no files</div>`
-        return paths.map(path => hx`
+        if (!paths.length) return turtle`<div class="empty-hint">no files</div>`
+        return paths.map(path => turtle`
           <div class="${'file-item' + (selectedFile === path ? ' selected' : '')}"
                onclick="${() => () => selectFile(path)}">
             <span class="file-path">${path}</span>
-            ${files[path] instanceof Uint8Array ? hx`<span class="dim">bin</span>` : hx``}
+            ${files[path] instanceof Uint8Array ? turtle`<span class="dim">bin</span>` : turtle``}
           </div>
         `)
       }}
@@ -99,13 +99,13 @@ mount(hx`
     }}">
       ${() => {
         stream.recaller.reportKeyAccess(uiState, 'selected')
-        if (!selectedFile) return hx`<div class="empty-hint">select a file to edit</div>`
+        if (!selectedFile) return turtle`<div class="empty-hint">select a file to edit</div>`
         const files = getFiles()
         const isText = typeof files?.[selectedFile] === 'string'
-        return hx`
+        return turtle`
           <div class="editor-header">
             <span class="editor-filename">${selectedFile}</span>
-            ${isText ? hx`<button onclick="${() => saveFile}">save</button>` : hx``}
+            ${isText ? turtle`<button onclick="${() => saveFile}">save</button>` : turtle``}
           </div>
           <textarea class="editor-textarea"
                     value="${isText ? editContent : '[binary file — not editable]'}"
