@@ -1,4 +1,4 @@
-import { getPublicKey, signAsync, verify } from '../common/utils/noble-secp256k1.js'
+import { getPublicKey, signAsync, verify } from './utils/noble-secp256k1.js'
 
 const cryptoSubtle = typeof crypto !== 'undefined' ? crypto.subtle : (await import('crypto')).webcrypto.subtle
 

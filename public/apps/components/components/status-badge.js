@@ -1,6 +1,6 @@
 /* eslint-env browser */
-import { hx } from '../../../stream/hx.js'
-import { mount } from '../../../stream/mount.js'
+import { hx } from '../../stream/hx.js'
+import { mount } from '../../stream/mount.js'
 
 const LABELS = {
   null:          { text: 'local only',    cls: 'idle'   },

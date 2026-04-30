@@ -1,6 +1,10 @@
 import { createServer } from 'http'
 import { WebSocketServer } from 'ws'
 import express from 'express'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+
+const publicDir = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 function hexToBytes (hex) {
   const bytes = new Uint8Array(hex.length / 2)
@@ -29,8 +33,7 @@ function hexToBytes (hex) {
 export async function webSync (registry, primaryKeyHex, port, name, keyIterations = 100000) {
   const app = express()
 
-  // Serve repo root as static files so browsers can import stream ES modules
-  app.use(express.static('.'))
+  app.use(express.static(publicDir))
 
   app.use(express.json())
 

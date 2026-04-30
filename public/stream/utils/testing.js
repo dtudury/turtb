@@ -2,7 +2,7 @@
  * Universal test utility for stream/ tests.
  *
  * In Node.js:   wraps node:test describe/test — tests actually execute via `node --test`
- * In browser:   registers with globalTestRunner from lib/ — tests run via test.html
+ * In browser:   no-op for now; browser test runner to be rebuilt as a stream module
  *
  * Usage in test files:
  *
@@ -74,14 +74,8 @@ if (IS_NODE) {
     }
   }
 } else {
-  const { globalTestRunner, urlToName } = await import('../../lib/utils/TestRunner.js')
-  _impl = {
-    describe (name, fn) {
-      globalTestRunner.describe(urlToName(name), suite => {
-        fn({ test: (testName, testFn) => suite.it(testName, testFn) })
-      })
-    }
-  }
+  // Browser test runner: TODO rebuild as a first-class stream module
+  _impl = { describe () {} }
 }
 
 /**

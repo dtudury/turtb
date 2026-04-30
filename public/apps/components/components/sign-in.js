@@ -1,7 +1,7 @@
 /* eslint-env browser */
-import { hx } from '../../../stream/hx.js'
-import { mount } from '../../../stream/mount.js'
-import { Signer } from '../../../stream/Signer.js'
+import { hx } from '../../stream/hx.js'
+import { mount } from '../../stream/mount.js'
+import { Signer } from '../../stream/Signer.js'
 
 class HxSignIn extends HTMLElement {
   #stream = null
