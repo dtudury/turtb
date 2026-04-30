@@ -83,6 +83,22 @@ describe(import.meta.url, ({ test }) => {
     }
   })
 
+  test('set() with a path works when root is VARIABLE-encoded (old server data)', ({ assert }) => {
+    // Old server archives encoded the root value as VARIABLE (a boxed address).
+    // asRefs() previously returned the VARIABLE address number rather than the
+    // inner object's refs, causing refs['toggle'] === undefined → crash.
+    const stream = new Stream()
+    // encodeVariable to simulate old-style encoded root
+    const rootCode = stream.encodeVariable({ toggle: { value: false, label: 'enabled' }, counter: { value: 0 } })
+    stream.append(rootCode)
+    // get() should see through VARIABLE
+    assert.equal(stream.get('toggle', 'value'), false)
+    // set() with a 2-level path must not crash
+    stream.set('toggle', 'value', true)
+    assert.equal(stream.get('toggle', 'value'), true)
+    assert.equal(stream.get('counter', 'value'), 0)
+  })
+
   test('set() after sign() reads/writes user data, not the signature chunk', async ({ assert }) => {
     const { signer } = await makeKey()
     const stream = new Stream()

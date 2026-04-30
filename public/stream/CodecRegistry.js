@@ -112,7 +112,8 @@ export class CodecRegistry extends Addressifier {
   asRefs (address) {
     const code = this.resolve(address)
     const { type } = this.footerToCodec[code.at(-1)]
-    if (type === 'OBJECT' || type === 'EMPTY_OBJECT' ||
+    if (type === 'VARIABLE' ||
+        type === 'OBJECT' || type === 'EMPTY_OBJECT' ||
         type === 'ARRAY'  || type === 'EMPTY_ARRAY') {
       return this.decode(address, true)
     }
