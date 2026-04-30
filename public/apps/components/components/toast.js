@@ -1,11 +1,11 @@
 /* eslint-env browser */
-import { hx } from '../../stream/hx.js'
-import { mount } from '../../stream/mount.js'
+import { hx } from '../../../stream/hx.js'
+import { mount } from '../../../stream/mount.js'
 
 /**
  * createToaster — factory for a reactive toast notification system.
  *
- * @param {import('../../stream/utils/Recaller.js').Recaller} recaller
+ * @param {import('../../../stream/utils/Recaller.js').Recaller} recaller
  * @returns {{ show, dismiss, state, recaller }}
  */
 export function createToaster (recaller) {

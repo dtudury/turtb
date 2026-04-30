@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync } from 'fs'
+import { dirname } from 'path'
 import { Option, program } from 'commander'
 import { config } from 'dotenv'
 import { question, questionNewPassword } from 'readline-sync'
@@ -117,7 +118,10 @@ const publicKeyHex = Array.from(publicKey).map(b => b.toString(16).padStart(2, '
 
 const name = options.name
 const username = options.username
-const webUrl = options.web ? `http://localhost:${+options.web}` : null
+const appPath = options.envFile
+  ? '/' + dirname(options.envFile).replace(/^public\//, '') + '/'
+  : '/'
+const webUrl = options.web ? `http://localhost:${+options.web}${appPath}` : null
 const rows = [
   ['NAME', name],
   ['USERNAME', username],
@@ -129,10 +133,10 @@ const pad = (v) => v + ' '.repeat(maxLength - v.length)
 const div = '─'.repeat(maxLength)
 const label = (l) => l.padStart(16)
 console.log(`\x1b[35m
-    ╭──────────────────${'─'.repeat(div.length)}──╮
+    ╭${'─'.repeat(maxLength + 23)}╮
     ╞══════════════════╤══${'═'.repeat(maxLength)}══╡
 ${rows.map(([l, v], i) => [
-  `    │  ${label(l + ':')} │  \x1b[0m${pad(v)}\x1b[35m  │`,
+  `    │ ${label(l + ':')} │  \x1b[0m${pad(v)}\x1b[35m  │`,
   i < rows.length - 1 ? `    ├──────────────────┼──${div}──┤` : null
 ].filter(Boolean).join('\n')).join('\n')}
     ╰──────────────────┴──${'━'.repeat(maxLength)}──╯\x1b[0m`)

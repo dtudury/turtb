@@ -1,7 +1,7 @@
 /* eslint-env browser */
-import { Stream } from '../stream/Stream.js'
-import { hx } from '../stream/hx.js'
-import { mount } from '../stream/mount.js'
+import { Stream } from '../../stream/Stream.js'
+import { hx } from '../../stream/hx.js'
+import { mount } from '../../stream/mount.js'
 import './components/counter.js'
 import './components/toggle.js'
 import './components/text-input.js'
