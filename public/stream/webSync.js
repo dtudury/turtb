@@ -3,14 +3,9 @@ import { WebSocketServer } from 'ws'
 import express from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
+import { hexToBytes } from './utils.js'
 
 const publicDir = join(dirname(fileURLToPath(import.meta.url)), '..')
-
-function hexToBytes (hex) {
-  const bytes = new Uint8Array(hex.length / 2)
-  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16)
-  return bytes
-}
 
 /**
  * Start an HTTP + WebSocket server that exposes a StreamRegistry to browsers

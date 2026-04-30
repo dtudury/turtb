@@ -1,4 +1,15 @@
 /**
+ * Decode a hex string to a Uint8Array.
+ * @param {string} hex
+ * @returns {Uint8Array}
+ */
+export function hexToBytes (hex) {
+  const bytes = new Uint8Array(hex.length / 2)
+  for (let i = 0; i < bytes.length; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16)
+  return bytes
+}
+
+/**
  * Encode a non-negative integer as a little-endian byte array.
  * The number of bytes needed is the minimum to represent the value.
  * @param {number} n
