@@ -117,16 +117,25 @@ const publicKeyHex = Array.from(publicKey).map(b => b.toString(16).padStart(2, '
 
 const name = options.name
 const username = options.username
-const maxLength = Math.max(name.length, username.length, publicKeyHex.length)
+const webUrl = options.web ? `http://localhost:${+options.web}` : null
+const rows = [
+  ['NAME', name],
+  ['USERNAME', username],
+  ['PUBLIC KEY', publicKeyHex],
+  ...(webUrl ? [['URL', webUrl]] : []),
+]
+const maxLength = Math.max(...rows.map(([, v]) => v.length))
+const pad = (v) => v + ' '.repeat(maxLength - v.length)
+const div = '─'.repeat(maxLength)
+const label = (l) => l.padStart(16)
 console.log(`\x1b[35m
-    ╭─────────────────────${'─'.repeat(maxLength)}──╮
+    ╭──────────────────${'─'.repeat(div.length)}──╮
     ╞══════════════════╤══${'═'.repeat(maxLength)}══╡
-    │            NAME: │  \x1b[0m${name}${' '.repeat(maxLength - name.length)}\x1b[35m  │
-    ├──────────────────┼──${'─'.repeat(maxLength)}──┤
-    │        USERNAME: │  \x1b[0m${username}${' '.repeat(maxLength - username.length)}\x1b[35m  │
-    ├──────────────────┼──${'─'.repeat(maxLength)}──┤
-    │      PUBLIC KEY: │  \x1b[0m${publicKeyHex}${' '.repeat(maxLength - publicKeyHex.length)}\x1b[35m  │
-    ╰━━━━━━━━━━━━━━━━━━┷━━${'━'.repeat(maxLength)}━━╯\x1b[0m`)
+${rows.map(([l, v], i) => [
+  `    │  ${label(l + ':')} │  \x1b[0m${pad(v)}\x1b[35m  │`,
+  i < rows.length - 1 ? `    ├──────────────────┼──${div}──┤` : null
+].filter(Boolean).join('\n')).join('\n')}
+    ╰──────────────────┴──${'━'.repeat(maxLength)}──╯\x1b[0m`)
 
 const dataDir = options.dataDir
 const registry = new StreamRegistry(async key => {
@@ -154,9 +163,7 @@ if (options.s3Bucket) {
 }
 
 if (options.web) {
-  const port = +options.web
-  await webSync(registry, publicKeyHex, port, name, options.keyIterations)
-  console.log(`\x1b[32mweb: http://localhost:${port}\x1b[0m`)
+  await webSync(registry, publicKeyHex, +options.web, name, options.keyIterations)
 }
 
 if (options.outlet) {
