@@ -2,7 +2,7 @@ import { WebSocketServer } from 'ws'
 import { hexToBytes } from './utils.js'
 
 /**
- * Start a WebSocket server that syncs streams from a StreamRegistry.
+ * Attach the stream sync protocol to an existing WebSocketServer.
  *
  * Protocol:
  *   1. Client sends a text message containing the hex-encoded public key of
@@ -14,13 +14,11 @@ import { hexToBytes } from './utils.js'
  * Duplicate chunks are silently skipped on both sides (content-addressed
  * dedup). Invalid signature chunks close the connection.
  *
+ * @param {WebSocketServer} wss
  * @param {import('./StreamRegistry.js').StreamRegistry} registry
- * @param {number} port
- * @returns {WebSocketServer}
+ * @param {string} [label]  prefix for log messages
  */
-export function outletSync (registry, port) {
-  const wss = new WebSocketServer({ port })
-
+export function attachStreamSync (wss, registry, label = 'ws') {
   wss.on('connection', ws => {
     let reader = null
 
@@ -37,7 +35,7 @@ export function outletSync (registry, port) {
       try {
         stream = await registry.open(publicKeyHex)
       } catch (e) {
-        console.error(`[outlet] failed to open stream ${publicKeyHex.slice(0, 8)}...: ${e.message}`)
+        console.error(`[${label}] failed to open stream ${publicKeyHex.slice(0, 8)}...: ${e.message}`)
         ws.close()
         return
       }
@@ -63,7 +61,7 @@ export function outletSync (registry, port) {
 
       const writeChunk = data => {
         writer.write(new Uint8Array(data)).catch(e => {
-          console.error(`[outlet] rejected chunk from ${publicKeyHex.slice(0, 8)}...: ${e.message}`)
+          console.error(`[${label}] rejected chunk from ${publicKeyHex.slice(0, 8)}...: ${e.message}`)
           ws.close()
         })
       }
@@ -75,10 +73,21 @@ export function outletSync (registry, port) {
 
     ws.on('close', () => reader?.cancel().catch(() => {}))
     ws.on('error', err => {
-      console.error('[outlet] connection error:', err.message)
+      console.error(`[${label}] connection error:`, err.message)
       reader?.cancel().catch(() => {})
     })
   })
+}
 
+/**
+ * Start a standalone WebSocket server that syncs streams from a StreamRegistry.
+ *
+ * @param {import('./StreamRegistry.js').StreamRegistry} registry
+ * @param {number} port
+ * @returns {WebSocketServer}
+ */
+export function outletSync (registry, port) {
+  const wss = new WebSocketServer({ port })
+  attachStreamSync(wss, registry, 'outlet')
   return wss
 }

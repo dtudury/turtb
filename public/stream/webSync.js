@@ -3,7 +3,7 @@ import { WebSocketServer } from 'ws'
 import express from 'express'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { hexToBytes } from './utils.js'
+import { attachStreamSync } from './outletSync.js'
 
 const publicDir = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -103,61 +103,7 @@ export async function webSync (registry, primaryKeyHex, port, name, keyIteration
 
   const server = createServer(app)
 
-  // WebSocket sync on the same port — same protocol as outletSync
-  const wss = new WebSocketServer({ server })
-  wss.on('connection', ws => {
-    let reader = null
-
-    ws.once('message', async rawHandshake => {
-      const publicKeyHex = rawHandshake.toString().trim()
-
-      const pending = []
-      const buffer = data => pending.push(data)
-      ws.on('message', buffer)
-
-      let stream
-      try {
-        stream = await registry.open(publicKeyHex)
-      } catch (e) {
-        console.error(`[web] failed to open stream ${publicKeyHex.slice(0, 8)}...: ${e.message}`)
-        ws.close()
-        return
-      }
-
-      ws.off('message', buffer)
-
-      reader = stream.makeReadableStream().getReader()
-      ;(async () => {
-        try {
-          while (true) {
-            const { value, done } = await reader.read()
-            if (done) break
-            if (ws.readyState === ws.OPEN) ws.send(value)
-            else break
-          }
-        } catch {}
-      })()
-
-      const publicKey = hexToBytes(publicKeyHex)
-      const writer = stream.makeVerifiedWritableStream(publicKey).getWriter()
-
-      const writeChunk = data => {
-        writer.write(new Uint8Array(data)).catch(e => {
-          console.error(`[web] rejected chunk from ${publicKeyHex.slice(0, 8)}...: ${e.message}`)
-          ws.close()
-        })
-      }
-
-      for (const data of pending) writeChunk(data)
-      ws.on('message', writeChunk)
-    })
-
-    ws.on('close', () => reader?.cancel().catch(() => {}))
-    ws.on('error', err => {
-      console.error('[web] connection error:', err.message)
-      reader?.cancel().catch(() => {})
-    })
-  })
+  attachStreamSync(new WebSocketServer({ server }), registry, 'web')
 
   await new Promise((resolve, reject) => {
     server.listen(port, err => err ? reject(err) : resolve())
