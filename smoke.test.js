@@ -83,6 +83,19 @@ describe(import.meta.url, ({ test }) => {
     }
   })
 
+  test('set() after sign() reads/writes user data, not the signature chunk', async ({ assert }) => {
+    const { signer } = await makeKey()
+    const stream = new Stream()
+    stream.set({ count: 0 })
+    await stream.sign(signer, 'smoke')
+    // Before the fix, set() with a path would crash here because byteLength - 1
+    // pointed to the signature chunk instead of the data chunk.
+    stream.set('count', stream.get('count') + 1)
+    assert.equal(stream.get('count'), 1)
+    // get() must also skip past the signature
+    assert.deepEqual(stream.get(), { count: 1 })
+  })
+
   test('archiveSync persists data and reloads it on a fresh Stream', async ({ assert }) => {
     const { publicKeyHex } = await makeKey('archive')
     const dir = await mkdtemp(join(tmpdir(), 'smoke-'))

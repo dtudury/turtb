@@ -99,7 +99,7 @@ export class Stream extends CodecRegistry {
     if (typeof args[0] === 'number') {
       address = args.shift()
     } else {
-      address = super.byteLength - 1
+      address = this.valueAddress
       // 'length': re-run when external bytes arrive (append() fires 'length').
       // path string: re-run when set() mutates this specific path via changedPaths.
       this.#recaller.reportKeyAccess(this, 'length')
@@ -128,11 +128,11 @@ export class Stream extends CodecRegistry {
    * @returns {number} address of the newly appended code
    */
   set (...args) {
-    const baseAddress = typeof args[0] === 'number' ? args.shift() : super.byteLength - 1
+    const baseAddress = typeof args[0] === 'number' ? args.shift() : this.valueAddress
     const value = args.pop()
     const path = args
 
-    const prevAddress = super.byteLength > 0 ? super.byteLength - 1 : undefined
+    const prevAddress = super.byteLength > 0 ? this.valueAddress : undefined
 
     if (path.length === 0 || baseAddress < 0) {
       // Whole-value set: encode and store, bypassing Stream.append so 'length'
@@ -225,6 +225,22 @@ export class Stream extends CodecRegistry {
   }
 
   // ── Signing ──────────────────────────────────────────────────────────────
+
+  /**
+   * Address of the most-recently-appended non-signature chunk.
+   * After stream.sign() appends a SIGNATURE chunk, byteLength - 1 points to the
+   * signature rather than the user data. This getter skips backward past any
+   * trailing SIGNATURE chunks so get() and set() always operate on real data.
+   */
+  get valueAddress () {
+    let address = super.byteLength - 1
+    while (address >= 0) {
+      const code = this.resolve(address)
+      if (this.footerToCodec[code.at(-1)]?.type !== 'SIGNATURE') break
+      address -= code.length
+    }
+    return address
+  }
 
   /** Byte length that has been covered by a signature. */
   get signedLength () { return this.#signedLength }
