@@ -15,6 +15,7 @@ import { outletSync } from '../public/stream/outletSync.js'
 import { originSync } from '../public/stream/originSync.js'
 import { webSync } from '../public/stream/webSync.js'
 import { s3Sync } from '../public/stream/s3Sync.js'
+import { stateFileSync } from '../public/stream/stateFileSync.js'
 
 const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url)))
 
@@ -47,6 +48,10 @@ program
     new Option('--files [path]', 'mirror local files to/from stream (defaults to current directory)')
       .env('STREAM_FILES')
       .preset('.')
+  )
+  .addOption(
+    new Option('--state-file <path>', 'write stream state as JSON to this file on every change')
+      .env('STREAM_STATE_FILE')
   )
   .addOption(
     new Option('--s3-bucket <name>', 'S3 bucket name')
@@ -152,6 +157,11 @@ if (options.files) {
   const folder = typeof options.files === 'string' ? options.files : '.'
   await fileSync(stream, folder, options.dataDir)
   console.log(`\x1b[32mmirroring files: ${folder}\x1b[0m`)
+}
+
+if (options.stateFile) {
+  stateFileSync(stream, options.stateFile)
+  console.log(`\x1b[32mstate file: ${options.stateFile}\x1b[0m`)
 }
 
 if (options.s3Bucket) {
