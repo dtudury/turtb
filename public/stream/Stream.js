@@ -179,6 +179,66 @@ export class Stream extends CodecRegistry {
   }
 
   /**
+   * Navigate a path and return refs (addresses instead of decoded values).
+   * With no path, returns root refs. Returns a plain number if the target is
+   * a leaf (non-object/array), or undefined if the path doesn't exist.
+   *
+   * @param {...string} path
+   * @returns {Object|number|undefined}
+   */
+  getRefs (...path) {
+    let address = this.valueAddress
+    if (address < 0) return undefined
+    for (const key of path) {
+      const refs = this.asRefs(address)
+      if (typeof refs === 'number') return undefined
+      address = Array.isArray(refs) ? refs[+key] : refs[key]
+      if (address === undefined) return undefined
+    }
+    return this.asRefs(address)
+  }
+
+  /**
+   * Like set(), but the last argument is an address (number) rather than a
+   * decoded value. Rebuilds only the changed path bottom-up, reusing sibling
+   * addresses — same as set() but skips the leaf-encoding step.
+   *
+   * Requires at least one path key and an existing object at that path.
+   *
+   * @param {...(string|number)} args  ...path, address
+   * @returns {number} address of the newly appended code
+   */
+  setRefs (...args) {
+    let childAddr = args.pop()
+    const path = args
+    const baseAddress = this.valueAddress
+    const prevAddress = super.byteLength > 0 ? this.valueAddress : undefined
+
+    const levels = []
+    let addr = baseAddress
+    for (let i = 0; i < path.length - 1; i++) {
+      const refs = this.asRefs(addr)
+      levels.push({ refs, key: path[i] })
+      addr = Array.isArray(refs) ? refs[+path[i]] : refs[path[i]]
+    }
+    levels.push({ refs: this.asRefs(addr), key: path[path.length - 1] })
+
+    for (let i = levels.length - 1; i >= 0; i--) {
+      const { refs, key } = levels[i]
+      const newRefs = Array.isArray(refs) ? [...refs] : { ...refs }
+      newRefs[Array.isArray(refs) ? +key : key] = childAddr
+      const code = this.encode(newRefs, true)
+      childAddr = this.addressOf(code) ?? super.append(code)
+    }
+
+    const newAddress = super.byteLength - 1
+    for (const changed of changedPaths(this, prevAddress, newAddress)) {
+      this.#recaller.reportKeyMutation(this, JSON.stringify(changed))
+    }
+    return newAddress
+  }
+
+  /**
    * Call f immediately, tracking get() calls. Re-runs f whenever a
    * subsequent set() touches a path that was accessed.
    * @param {string} name

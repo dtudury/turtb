@@ -82,6 +82,43 @@ export class Repository extends Stream {
   }
 
   /**
+   * Like Stream.getRefs() but reads from the last commit's dataAddress.
+   *
+   * @param {...string} path
+   * @returns {Object|number|undefined}
+   */
+  getRefs (...path) {
+    const commit = this.lastCommit
+    if (!commit) return super.getRefs(...path)
+    let address = commit.dataAddress
+    for (const key of path) {
+      const refs = this.asRefs(address)
+      if (typeof refs === 'number') return undefined
+      address = Array.isArray(refs) ? refs[+key] : refs[key]
+      if (address === undefined) return undefined
+    }
+    return this.asRefs(address)
+  }
+
+  /**
+   * Like Stream.setRefs() but auto-commits via checkout → setRefs → commit.
+   *
+   * @param {...(string|number)} args  ...path, address
+   * @returns {number} address of the new commit record
+   */
+  setRefs (...args) {
+    const prevDataAddress = this.lastCommit?.dataAddress
+    const working = this.checkout()
+    working.setRefs(...args)
+    const result = this.commit(working)
+    const newDataAddress = this.lastCommit?.dataAddress
+    for (const changed of changedPaths(this, prevDataAddress, newDataAddress)) {
+      this.recaller.reportKeyMutation(this, JSON.stringify(changed))
+    }
+    return result
+  }
+
+  /**
    * Clone the repository at the last commit's data address.
    * The returned Stream's get() immediately returns the last committed value.
    * Returns an empty Stream if nothing has been committed yet.
