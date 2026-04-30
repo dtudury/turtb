@@ -36,6 +36,15 @@ try {
   }
 } catch { /* server not available */ }
 
+// If the stream contains Repository commit records (saved with --files or an older
+// server version), extract the committed data and reset to plain app state.
+const lastValue = stream.byteLength > 0 ? stream.get() : null
+if (lastValue && typeof lastValue.message === 'string' && typeof lastValue.dataAddress === 'number') {
+  const appState = stream.decode(lastValue.dataAddress)
+  stream._reset()
+  if (appState && typeof appState === 'object') stream.set(appState)
+}
+
 // Fall back to defaults if stream is still empty (first run or offline)
 if (stream.byteLength === 0) {
   const defaults = await fetch('/apps/components/state.json').then(r => r.json())
