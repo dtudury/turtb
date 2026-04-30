@@ -30,11 +30,10 @@ export async function archiveSync (stream, dir, publicKeyHex) {
     // No existing archive — start fresh
   }
 
-  // Compact: discard accumulated history and keep only the current value.
-  // This keeps the archive small regardless of how many writes have
-  // accumulated. Skipped silently for stream types (e.g. FileRepository)
-  // that don't support round-trip get/set compaction.
-  if (stream.byteLength > 0) {
+  // Compact plain Streams: discard accumulated history and keep only the
+  // current value. Skipped for Repository subclasses whose commit records
+  // embed dataAddress pointers that would become invalid after a reset.
+  if (stream.byteLength > 0 && typeof stream.commit !== 'function') {
     try {
       const value = stream.get()
       if (value !== undefined) {

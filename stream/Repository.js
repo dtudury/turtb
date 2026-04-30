@@ -43,6 +43,17 @@ export class Repository extends Stream {
   }
 
   /**
+   * The committed data from the last commit, decoded.
+   * Returns undefined if nothing has been committed yet.
+   * @returns {any}
+   */
+  get files () {
+    const commit = this.lastCommit
+    if (!commit) return undefined
+    return this.decode(commit.dataAddress)
+  }
+
+  /**
    * Iterate commits from newest to oldest.
    * @yields {{ message: string, date: Date, dataAddress: number, parent: number|undefined }}
    */

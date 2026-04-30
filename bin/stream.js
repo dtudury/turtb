@@ -7,7 +7,7 @@ import { question, questionNewPassword } from 'readline-sync'
 import { start as startRepl } from 'repl'
 import { Signer } from '../stream/Signer.js'
 import { Stream } from '../stream/Stream.js'
-import { FileRepository } from '../stream/FileRepository.js'
+import { Repository } from '../stream/Repository.js'
 import { StreamRegistry } from '../stream/StreamRegistry.js'
 import { archiveSync } from '../stream/archiveSync.js'
 import { fileSync } from '../stream/fileSync.js'
@@ -130,7 +130,7 @@ console.log(`\x1b[35m
 
 const dataDir = options.dataDir
 const registry = new StreamRegistry(async key => {
-  const stream = options.files ? new FileRepository() : new Stream()
+  const stream = options.files ? new Repository() : new Stream()
   await archiveSync(stream, dataDir, key)
   return stream
 })
