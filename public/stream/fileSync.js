@@ -31,6 +31,35 @@ function decodeBytes (bytes) {
 }
 
 /**
+ * Decode a file's value for storage: JSON files become parsed objects (or
+ * strings if the JSON is invalid), everything else stays as-is.
+ * @param {string} rel  relative path
+ * @param {string|Uint8Array} value
+ * @returns {object|string|Uint8Array}
+ */
+function decodeFile (rel, value) {
+  if (rel.endsWith('.json') && typeof value === 'string') {
+    try { return JSON.parse(value) } catch {}
+  }
+  return value
+}
+
+/**
+ * Encode a file value for writing to disk: objects stored under a .json path
+ * are serialized back to pretty-printed JSON.
+ * @param {string} rel
+ * @param {any} value
+ * @returns {string|Uint8Array|null}  null means skip
+ */
+function encodeFile (rel, value) {
+  if (rel.endsWith('.json') && value != null && typeof value === 'object' && !(value instanceof Uint8Array)) {
+    return JSON.stringify(value, null, 2) + '\n'
+  }
+  if (typeof value === 'string' || value instanceof Uint8Array) return value
+  return null
+}
+
+/**
  * Recursively read all accepted files in folder.
  * @param {string} folder
  * @param {(rel: string) => boolean} accepts
@@ -49,7 +78,7 @@ async function readFolder (folder, accepts) {
       if (entry.isDirectory()) await walk(abs)
       else if (entry.isFile()) {
         const [bytes, info] = await Promise.all([readFile(abs), stat(abs)])
-        files[rel] = decodeBytes(bytes)
+        files[rel] = decodeFile(rel, decodeBytes(bytes))
         if (info.mtimeMs > maxMtime) maxMtime = info.mtimeMs
       }
     }
@@ -67,8 +96,9 @@ async function writeToFolder (folder, files) {
   for (const [rel, content] of Object.entries(files)) {
     const abs = join(folder, rel)
     await mkdir(dirname(abs), { recursive: true })
-    if (typeof content !== 'string' && !(content instanceof Uint8Array)) continue
-    const bytes = typeof content === 'string' ? new TextEncoder().encode(content) : content
+    const encoded = encodeFile(rel, content)
+    if (encoded === null) continue
+    const bytes = typeof encoded === 'string' ? new TextEncoder().encode(encoded) : encoded
     await writeFile(abs, bytes)
   }
 }
@@ -101,7 +131,14 @@ function filesEqual (a, b) {
     if (av instanceof Uint8Array && bv instanceof Uint8Array) {
       if (av.length !== bv.length) return false
       if (!av.every((byte, i) => byte === bv[i])) return false
-    } else if (av !== bv) return false
+    } else if (av !== bv) {
+      if (av == null || bv == null) return false
+      if (typeof av === 'object' && typeof bv === 'object') {
+        if (JSON.stringify(av) !== JSON.stringify(bv)) return false
+      } else {
+        return false
+      }
+    }
   }
   return true
 }
