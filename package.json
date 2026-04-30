@@ -6,7 +6,6 @@
   "author": "David Tudury <david.tudury@gmail.com>",
   "license": "AGPL-3.0-only",
   "bin": {
-    "turtb": "./bin/turtb.js",
     "stream": "./bin/stream.js"
   },
   "type": "module",
@@ -22,8 +21,7 @@
     "ws": "^8.18.3"
   },
   "scripts": {
-    "start": "./bin/turtb.js --env-file .env",
-    "app:browser": "./bin/stream.js --env-file apps/browser/.env.sample",
-    "app:components": "./bin/stream.js --env-file apps/components/.env.sample"
+    "app:browser": "./bin/stream.js --env-file public/apps/browser/.env.sample",
+    "app:components": "./bin/stream.js --env-file public/apps/components/.env.sample"
   }
 }
