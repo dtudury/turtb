@@ -1,6 +1,7 @@
 import { describe } from './public/stream/utils/testing.js'
 import { Stream } from './public/stream/Stream.js'
-import { StreamRegistry } from './public/stream/StreamRegistry.js'
+import { Repository } from './public/stream/Repository.js'
+import { RepositoryRegistry } from './public/stream/RepositoryRegistry.js'
 import { archiveSync } from './public/stream/archiveSync.js'
 import { webSync } from './public/stream/webSync.js'
 import { Signer } from './public/stream/Signer.js'
@@ -20,7 +21,7 @@ async function makeKey (name = 'smoke') {
 }
 
 async function startServer (publicKeyHex, stream) {
-  const registry = new StreamRegistry(() => stream)
+  const registry = new RepositoryRegistry(() => stream)
   const server = await webSync(registry, publicKeyHex, 0, 'smoke-test', KEY_ITERATIONS)
   const { port } = server.address()
   const close = () => new Promise(resolve => server.close(resolve))

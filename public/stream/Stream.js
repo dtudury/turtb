@@ -24,7 +24,7 @@ export class ConflictError extends Error {
  * Yield every path where addrA and addrB differ, including the root.
  * Compares by address so unchanged subtrees are skipped in O(1).
  */
-function * changedPaths (stream, addrA, addrB, path = []) {
+export function * changedPaths (stream, addrA, addrB, path = []) {
   if (addrA === addrB) return
   yield path
   const refsA = addrA !== undefined ? stream.decode(addrA, true) : undefined

@@ -1,35 +1,36 @@
 import { describe } from './utils/testing.js'
 import { Stream } from './Stream.js'
-import { StreamRegistry } from './StreamRegistry.js'
+import { Repository } from './Repository.js'
+import { RepositoryRegistry } from './RepositoryRegistry.js'
 import { archiveSync } from './archiveSync.js'
 
 function archiveRegistry (dir) {
-  return new StreamRegistry(async key => {
-    const stream = new Stream()
-    await archiveSync(stream, dir, key)
-    return stream
+  return new RepositoryRegistry(async key => {
+    const repo = new Repository()
+    await archiveSync(repo, dir, key)
+    return repo
   })
 }
 
 describe(import.meta.url, ({ test }) => {
-  test('plain registry creates in-memory streams with no factory', async ({ assert }) => {
-    const registry = new StreamRegistry()
+  test('plain registry creates in-memory repositories with no factory', async ({ assert }) => {
+    const registry = new RepositoryRegistry()
     const s = await registry.open('anykey')
-    assert.ok(s instanceof Stream)
+    assert.ok(s instanceof Repository)
     s.set({ x: 1 })
     assert.equal(s.get('x'), 1)
   })
 
-  test('open creates a stream and returns the same instance on repeat calls', async ({ assert }) => {
-    const registry = new StreamRegistry()
+  test('open creates a repository and returns the same instance on repeat calls', async ({ assert }) => {
+    const registry = new RepositoryRegistry()
     const s1 = await registry.open('aabbcc')
     const s2 = await registry.open('aabbcc')
     assert.ok(s1 === s2, 'same instance returned')
     assert.equal(registry.size, 1)
   })
 
-  test('open creates independent streams for different keys', async ({ assert }) => {
-    const registry = new StreamRegistry()
+  test('open creates independent repositories for different keys', async ({ assert }) => {
+    const registry = new RepositoryRegistry()
     const s1 = await registry.open('key1')
     const s2 = await registry.open('key2')
     assert.ok(s1 !== s2)
@@ -42,10 +43,10 @@ describe(import.meta.url, ({ test }) => {
 
   test('concurrent open() calls return the same instance', async ({ assert }) => {
     let created = 0
-    const registry = new StreamRegistry(async () => {
+    const registry = new RepositoryRegistry(async () => {
       created++
-      await new Promise(r => setTimeout(r, 10)) // simulate async setup
-      return new Stream()
+      await new Promise(r => setTimeout(r, 10))
+      return new Repository()
     })
     const [s1, s2, s3] = await Promise.all([
       registry.open('k'),
@@ -57,14 +58,14 @@ describe(import.meta.url, ({ test }) => {
   })
 
   test('get returns undefined for unopened or still-opening keys', async ({ assert }) => {
-    const registry = new StreamRegistry()
+    const registry = new RepositoryRegistry()
     assert.equal(registry.get('nope'), undefined)
     await registry.open('exists')
     assert.ok(registry.get('exists') instanceof Stream)
   })
 
-  test('iterates over fully-opened streams only', async ({ assert }) => {
-    const registry = new StreamRegistry()
+  test('iterates over fully-opened repositories only', async ({ assert }) => {
+    const registry = new RepositoryRegistry()
     await registry.open('a')
     await registry.open('b')
     const entries = [...registry]
@@ -72,8 +73,8 @@ describe(import.meta.url, ({ test }) => {
     assert.deepEqual(entries.map(([k]) => k).sort(), ['a', 'b'])
   })
 
-  test('archive factory persists and reloads stream data', async ({ assert }) => {
-    const dir = '/tmp/stream-registry-persist-test-' + Date.now()
+  test('archive factory persists and reloads repository data', async ({ assert }) => {
+    const dir = '/tmp/repository-registry-persist-test-' + Date.now()
     const r1 = archiveRegistry(dir)
     const s1 = await r1.open('testkey')
     s1.set({ saved: true })

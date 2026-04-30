@@ -1,5 +1,5 @@
 /* eslint-env browser */
-import { Stream } from '../../stream/Stream.js'
+import { Repository } from '../../stream/Repository.js'
 import { hx } from '../../stream/hx.js'
 import { mount } from '../../stream/mount.js'
 import './components/counter.js'
@@ -10,7 +10,7 @@ import './components/sign-in.js'
 import './components/status-badge.js'
 import { createToaster } from './components/toast.js'
 
-const stream = new Stream()
+const stream = new Repository()
 
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 // Load the server's raw stream bytes before connecting via WebSocket.
@@ -36,17 +36,8 @@ try {
   }
 } catch { /* server not available */ }
 
-// If the stream contains Repository commit records (saved with --files or an older
-// server version), extract the committed data and reset to plain app state.
-const lastValue = stream.byteLength > 0 ? stream.get() : null
-if (lastValue && typeof lastValue.message === 'string' && typeof lastValue.dataAddress === 'number') {
-  const appState = stream.decode(lastValue.dataAddress)
-  stream._reset()
-  if (appState && typeof appState === 'object') stream.set(appState)
-}
-
-// Fall back to defaults if stream is still empty (first run or offline)
-if (stream.byteLength === 0) {
+// Fall back to defaults if the repository has no commits yet (first run or offline)
+if (!stream.lastCommit) {
   const defaults = await fetch('/apps/components/state.json').then(r => r.json())
   stream.set(defaults)
 }

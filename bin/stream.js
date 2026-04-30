@@ -7,9 +7,8 @@ import { config } from 'dotenv'
 import { question, questionNewPassword } from 'readline-sync'
 import { start as startRepl } from 'repl'
 import { Signer } from '../public/stream/Signer.js'
-import { Stream } from '../public/stream/Stream.js'
 import { Repository } from '../public/stream/Repository.js'
-import { StreamRegistry } from '../public/stream/StreamRegistry.js'
+import { RepositoryRegistry } from '../public/stream/RepositoryRegistry.js'
 import { archiveSync } from '../public/stream/archiveSync.js'
 import { fileSync } from '../public/stream/fileSync.js'
 import { outletSync } from '../public/stream/outletSync.js'
@@ -142,10 +141,10 @@ ${rows.map(([l, v], i) => [
     ╰──────────────────┴──${'━'.repeat(maxLength)}──╯\x1b[0m`)
 
 const dataDir = options.dataDir
-const registry = new StreamRegistry(async key => {
-  const stream = options.files ? new Repository() : new Stream()
-  await archiveSync(stream, dataDir, key)
-  return stream
+const registry = new RepositoryRegistry(async key => {
+  const repo = new Repository()
+  await archiveSync(repo, dataDir, key)
+  return repo
 })
 const stream = await registry.open(publicKeyHex)
 
@@ -208,7 +207,7 @@ if (options.interactive) {
     // sync modules
     archiveSync, fileSync, s3Sync,
     // class
-    Stream, StreamRegistry,
+    Repository, RepositoryRegistry,
   })
 
   console.log(`\x1b[36m

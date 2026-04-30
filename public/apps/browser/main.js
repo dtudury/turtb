@@ -1,5 +1,5 @@
 /* eslint-env browser */
-import { Stream } from '../../stream/Stream.js'
+import { Repository } from '../../stream/Repository.js'
 import { hx } from '../../stream/hx.js'
 import { mount } from '../../stream/mount.js'
 
@@ -20,7 +20,7 @@ keyEl.textContent = primaryKeyHex
 
 // ── Stream setup ─────────────────────────────────────────────────────────
 
-const stream = new Stream()
+const stream = new Repository()
 
 function connectWS () {
   const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
@@ -53,9 +53,8 @@ function selectFile (path) {
 // ── Data helpers ─────────────────────────────────────────────────────────
 
 function getFiles () {
-  if (stream.byteLength === 0) return null
-  const commit = stream.get()
-  if (!commit || commit.dataAddress === undefined) return null
+  const commit = stream.lastCommit
+  if (!commit) return null
   return stream.decode(commit.dataAddress)
 }
 
