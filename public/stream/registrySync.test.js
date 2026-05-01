@@ -75,7 +75,7 @@ describe(import.meta.url, ({ test }) => {
     serverRepo.set({ hello: 'world' })
 
     const clientRegistry = new RepositoryRegistry()
-    const ws = await registrySync(clientRegistry, 'localhost', port, { filter: k => k === keyHex })
+    const { ws } = await registrySync(clientRegistry, 'localhost', port, { filter: k => k === keyHex })
 
     await waitFor(() => clientRegistry.get(keyHex)?.get('hello') === 'world')
     assert.equal(clientRegistry.get(keyHex).get('hello'), 'world')
@@ -93,7 +93,7 @@ describe(import.meta.url, ({ test }) => {
     serverRepo.set({ v: 1 })
 
     const clientRegistry = new RepositoryRegistry()
-    const ws = await registrySync(clientRegistry, 'localhost', port, { filter: k => k === keyHex })
+    const { ws } = await registrySync(clientRegistry, 'localhost', port, { filter: k => k === keyHex })
 
     await waitFor(() => clientRegistry.get(keyHex)?.get('v') === 1)
 
@@ -111,7 +111,7 @@ describe(import.meta.url, ({ test }) => {
 
     const keyHex = fakeKey(3)
     const clientRegistry = new RepositoryRegistry()
-    const ws = await registrySync(clientRegistry, 'localhost', port)
+    const { ws } = await registrySync(clientRegistry, 'localhost', port)
 
     const serverRepo = await serverRegistry.open(keyHex)
     serverRepo.set({ late: true })
@@ -136,7 +136,7 @@ describe(import.meta.url, ({ test }) => {
     repoB.set({ name: 'b' })
 
     const clientRegistry = new RepositoryRegistry()
-    const ws = await registrySync(clientRegistry, 'localhost', port, { filter: k => k === keyA })
+    const { ws } = await registrySync(clientRegistry, 'localhost', port, { filter: k => k === keyA })
 
     await waitFor(() => clientRegistry.get(keyA)?.get('name') === 'a')
     assert.equal(clientRegistry.get(keyA).get('name'), 'a')
@@ -161,7 +161,7 @@ describe(import.meta.url, ({ test }) => {
     repoB.set({ owner: 'B' })
 
     const { wss, port } = await startServer(registryA)
-    const ws = await registrySync(registryB, 'localhost', port)
+    const { ws } = await registrySync(registryB, 'localhost', port)
 
     await waitFor(() => registryA.get(keyB)?.get('owner') === 'B')
     await waitFor(() => registryB.get(keyA)?.get('owner') === 'A')
@@ -192,7 +192,7 @@ describe(import.meta.url, ({ test }) => {
     rootRepo.set({ members: [aliceKey, bobKey] })
 
     const clientRegistry = new RepositoryRegistry()
-    const ws = await registrySync(clientRegistry, 'localhost', port, {
+    const { ws } = await registrySync(clientRegistry, 'localhost', port, {
       filter: k => k === rootKey,  // only explicitly subscribe to root
       follow: (keyHex, repo, subscribe) => {
         // extract participant keys from the chat repo
@@ -222,7 +222,7 @@ describe(import.meta.url, ({ test }) => {
     rootRepo.set({ members: [] })  // starts empty
 
     const clientRegistry = new RepositoryRegistry()
-    const ws = await registrySync(clientRegistry, 'localhost', port, {
+    const { ws } = await registrySync(clientRegistry, 'localhost', port, {
       filter: k => k === rootKey,
       follow: (keyHex, repo, subscribe) => {
         for (const memberKey of repo.get('members') ?? []) subscribe(memberKey)
@@ -240,6 +240,135 @@ describe(import.meta.url, ({ test }) => {
     assert.equal(clientRegistry.get(carolKey).get('name'), 'carol')
 
     ws.close()
+    await new Promise(r => wss.close(r))
+  })
+
+  test('announce is routed to interested peers', async ({ assert }) => {
+    const { wss, port } = await startServer(new RepositoryRegistry())
+    const topic = fakeKey(20)
+    const announced = fakeKey(21)
+
+    const received = []
+    const sessionA = await registrySync(new RepositoryRegistry(), 'localhost', port, {
+      onAnnounce: (key, t) => received.push({ key, topic: t })
+    })
+    sessionA.interest(topic)
+
+    const sessionB = await registrySync(new RepositoryRegistry(), 'localhost', port)
+
+    // Give the interest message time to reach the server
+    await new Promise(r => setTimeout(r, 50))
+    sessionB.announce(announced, topic)
+
+    await waitFor(() => received.length === 1)
+    assert.equal(received[0].key, announced)
+    assert.equal(received[0].topic, topic)
+
+    sessionA.close()
+    sessionB.close()
+    await new Promise(r => wss.close(r))
+  })
+
+  test('announce is not received without interest', async ({ assert }) => {
+    const { wss, port } = await startServer(new RepositoryRegistry())
+    const topic = fakeKey(22)
+    const announced = fakeKey(23)
+
+    const received = []
+    const sessionA = await registrySync(new RepositoryRegistry(), 'localhost', port, {
+      onAnnounce: (key) => received.push(key)
+    })
+    // sessionA does NOT call interest(topic)
+
+    const sessionB = await registrySync(new RepositoryRegistry(), 'localhost', port)
+    await new Promise(r => setTimeout(r, 50))
+    sessionB.announce(announced, topic)
+
+    await new Promise(r => setTimeout(r, 100))
+    assert.equal(received.length, 0, 'no announcements without interest')
+
+    sessionA.close()
+    sessionB.close()
+    await new Promise(r => wss.close(r))
+  })
+
+  test('announce reaches multiple interested peers', async ({ assert }) => {
+    const { wss, port } = await startServer(new RepositoryRegistry())
+    const topic = fakeKey(24)
+    const announced = fakeKey(25)
+
+    const receivedA = [], receivedB = []
+    const sessionA = await registrySync(new RepositoryRegistry(), 'localhost', port, {
+      onAnnounce: (key) => receivedA.push(key)
+    })
+    const sessionB = await registrySync(new RepositoryRegistry(), 'localhost', port, {
+      onAnnounce: (key) => receivedB.push(key)
+    })
+    sessionA.interest(topic)
+    sessionB.interest(topic)
+
+    const sessionC = await registrySync(new RepositoryRegistry(), 'localhost', port)
+    await new Promise(r => setTimeout(r, 50))
+    sessionC.announce(announced, topic)
+
+    await waitFor(() => receivedA.length === 1 && receivedB.length === 1)
+    assert.equal(receivedA[0], announced)
+    assert.equal(receivedB[0], announced)
+
+    sessionA.close()
+    sessionB.close()
+    sessionC.close()
+    await new Promise(r => wss.close(r))
+  })
+
+  test('announce is not echoed back to the sender', async ({ assert }) => {
+    const { wss, port } = await startServer(new RepositoryRegistry())
+    const topic = fakeKey(26)
+    const announced = fakeKey(27)
+
+    const received = []
+    const session = await registrySync(new RepositoryRegistry(), 'localhost', port, {
+      onAnnounce: (key) => received.push(key)
+    })
+    session.interest(topic)
+
+    await new Promise(r => setTimeout(r, 50))
+    session.announce(announced, topic)  // sender declares interest and announces
+
+    await new Promise(r => setTimeout(r, 100))
+    assert.equal(received.length, 0, 'sender should not receive its own announcement')
+
+    session.close()
+    await new Promise(r => wss.close(r))
+  })
+
+  test('after disconnect, interest is cleaned up and announcements stop', async ({ assert }) => {
+    const { wss, port } = await startServer(new RepositoryRegistry())
+    const topic = fakeKey(28)
+    const announced = fakeKey(29)
+
+    const received = []
+    const sessionA = await registrySync(new RepositoryRegistry(), 'localhost', port, {
+      onAnnounce: (key) => received.push(key)
+    })
+    sessionA.interest(topic)
+
+    const sessionB = await registrySync(new RepositoryRegistry(), 'localhost', port)
+
+    // Confirm routing works before disconnect
+    await new Promise(r => setTimeout(r, 50))
+    sessionB.announce(announced, topic)
+    await waitFor(() => received.length === 1)
+
+    // Disconnect A, then announce again
+    sessionA.close()
+    await new Promise(r => setTimeout(r, 50))
+    sessionB.announce(announced, topic)
+
+    await new Promise(r => setTimeout(r, 100))
+    assert.equal(received.length, 1, 'no more announcements after disconnect')
+
+    sessionB.close()
     await new Promise(r => wss.close(r))
   })
 })

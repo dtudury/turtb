@@ -29,6 +29,12 @@ const KEY_BYTES = 33
  *     }
  *
  *   `subscribe` is idempotent and safe to call for already-synced repos.
+ *
+ * @property {(key: string, topic: string) => void} [onAnnounce]
+ *   Called when a remote peer announces a repository as related to a topic.
+ *   `key` is the announced repository's hex public key; `topic` is the hex key
+ *   of the repository it was announced under.  Only fires for topics you have
+ *   previously declared interest in via `session.interest(topicKey)`.
  */
 
 /**
@@ -71,8 +77,8 @@ const KEY_BYTES = 33
  * @param {RegistrySyncOptions} [options]
  * @param {string} [label]  prefix for log messages
  */
-export function handleRegistryPeer (ws, registry, options = {}, label = 'registry') {
-  const { filter = () => true, follow = null } = options
+export function handleRegistryPeer (ws, registry, options = {}, label = 'registry', routing = null) {
+  const { filter = () => true, follow = null, onAnnounce = null } = options
 
   const readers = new Map()        // keyHex → ReadableStreamDefaultReader (we → peer)
   const writers = new Map()        // keyHex → WritableStreamDefaultWriter (peer → us)
@@ -175,6 +181,22 @@ export function handleRegistryPeer (ws, registry, options = {}, label = 'registr
           }
         } else if (msg.type === 'subscribe') {
           await syncKey(msg.key)
+        } else if (msg.type === 'interest') {
+          if (routing) {
+            const { interestMap } = routing
+            if (!interestMap.has(msg.key)) interestMap.set(msg.key, new Set())
+            interestMap.get(msg.key).add(ws)
+          }
+        } else if (msg.type === 'announce') {
+          // Fan out to all subscribers of this topic (server-side routing)
+          if (routing) {
+            for (const sub of routing.interestMap.get(msg.topic) ?? []) {
+              if (sub !== ws && sub.readyState === sub.OPEN)
+                sub.send(JSON.stringify({ type: 'announce', key: msg.key, topic: msg.topic }))
+            }
+          }
+          // Deliver to local callback (client-side)
+          onAnnounce?.(msg.key, msg.topic)
         }
       } catch (e) {
         console.error(`[${label}] bad control message: ${e.message}`)
@@ -201,6 +223,9 @@ export function handleRegistryPeer (ws, registry, options = {}, label = 'registr
     for (const [keyHex, fn] of followFns) {
       registry.get(keyHex)?.recaller.unwatch(fn)
     }
+    if (routing) {
+      for (const subs of routing.interestMap.values()) subs.delete(ws)
+    }
   }
 
   ws.on('close', cleanup)
@@ -208,49 +233,61 @@ export function handleRegistryPeer (ws, registry, options = {}, label = 'registr
     console.error(`[${label}] connection error: ${err.message}`)
     cleanup()
   })
+
+  return {
+    /** Declare interest in a topic — receive future `announce` messages for it. */
+    interest (key) { sendJson({ type: 'interest', key }) },
+    /** Announce `key` as related to `topic` — routed to all peers interested in that topic. */
+    announce (key, topic) { sendJson({ type: 'announce', key, topic }) }
+  }
 }
+
+/**
+ * @typedef {Object} RegistrySession
+ * @property {WebSocket} ws  The underlying WebSocket connection.
+ * @property {() => void} close  Close the connection.
+ * @property {(key: string) => void} interest
+ *   Declare interest in a topic.  The server will route `announce` messages
+ *   for this topic to you via the `onAnnounce` callback in options.
+ * @property {(key: string, topic: string) => void} announce
+ *   Announce a repository as related to `topic`.  The server fans this out to
+ *   all other connected peers that have called `interest(topic)`.  Ephemeral —
+ *   no persistence, only routes to currently-connected interested peers.
+ */
 
 /**
  * Connect a local RepositoryRegistry to a remote one and sync repositories.
  *
- * Sends `"registry"` as the WebSocket handshake (instead of a single hex key),
- * then negotiates which repositories to sync via catalog/subscribe messages.
+ * Sends `"registry"` as the WebSocket handshake, then negotiates which
+ * repositories to sync via catalog/subscribe messages.  Returns a session
+ * object with `interest` and `announce` for the ephemeral messaging layer.
  *
  * ### Basic usage — sync everything
  *
- *   const ws = await registrySync(myRegistry, 'localhost', 8080)
+ *   const { ws } = await registrySync(myRegistry, 'localhost', 8080)
  *
- * ### Catalog filter — subscribe only to specific repos
+ * ### Ephemeral messaging — express interest and announce related repos
  *
- *   const ws = await registrySync(myRegistry, 'localhost', 8080, {
- *     filter: key => key === myKeyHex
+ *   const session = await registrySync(myRegistry, 'localhost', 8080, {
+ *     onAnnounce: (key, topic) => { console.log(key, 'is related to', topic) }
  *   })
+ *   session.interest(rootKey)          // start receiving announcements for rootKey
+ *   session.announce(myKey, rootKey)   // tell interested peers about myKey
  *
- * ### Content-driven discovery — follow repo references
+ * ### Catalog filter and content-driven discovery
  *
- * If a repo's value contains keys pointing to other repos, pass a `follow`
- * function and the registry will automatically sync those referenced repos:
- *
- *   const ws = await registrySync(myRegistry, 'localhost', 8080, {
+ *   const session = await registrySync(myRegistry, 'localhost', 8080, {
  *     filter: key => key === rootChatKey,
  *     follow: (keyHex, repo, subscribe) => {
- *       // The chat repo stores a list of participant keys in repo.get('members')
  *       for (const memberKey of repo.get('members') ?? []) subscribe(memberKey)
  *     }
  *   })
- *
- * The `follow` callback is called reactively: any time a synced repo's value
- * changes, `follow` re-runs for that repo.  Calling `subscribe(key)` inside
- * `follow` is idempotent — already-synced repos are skipped.
- *
- * Discovery propagates: once a referenced repo is synced, `follow` will also
- * be called on it, so chains of references are followed automatically.
  *
  * @param {import('./RepositoryRegistry.js').RepositoryRegistry} registry
  * @param {string} host
  * @param {number} port
  * @param {RegistrySyncOptions} [options]
- * @returns {Promise<WebSocket>}  resolves when the connection is open and sync has started
+ * @returns {Promise<RegistrySession>}
  */
 export function registrySync (registry, host, port, options = {}) {
   return new Promise((resolve, reject) => {
@@ -258,8 +295,8 @@ export function registrySync (registry, host, port, options = {}) {
 
     ws.on('open', () => {
       ws.send('registry')
-      handleRegistryPeer(ws, registry, options, 'origin-registry')
-      resolve(ws)
+      const { interest, announce } = handleRegistryPeer(ws, registry, options, 'origin-registry')
+      resolve({ ws, close: () => ws.close(), interest, announce })
     })
 
     ws.on('error', reject)

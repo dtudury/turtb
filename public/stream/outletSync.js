@@ -20,6 +20,10 @@ import { handleRegistryPeer } from './registrySync.js'
  * @param {string} [label]  prefix for log messages
  */
 export function attachStreamSync (wss, registry, label = 'ws') {
+  // Shared routing state for the ephemeral interest/announce messaging layer.
+  // Lives for the lifetime of the server; entries are cleaned up on disconnect.
+  const routing = { interestMap: new Map() }
+
   wss.on('connection', ws => {
     let reader = null
 
@@ -27,7 +31,7 @@ export function attachStreamSync (wss, registry, label = 'ws') {
       const handshake = rawHandshake.toString().trim()
 
       if (handshake === 'registry') {
-        handleRegistryPeer(ws, registry, {}, label)
+        handleRegistryPeer(ws, registry, {}, label, routing)
         return
       }
 
