@@ -179,27 +179,38 @@ export async function fileSync (repo, folder = '.', dataDir = '.stream') {
     repo.commit(working, 'initial')
   }
 
-  // Mutex: prevents a change in one direction from echoing back through the other
-  let updating = false
-  const withLock = async fn => {
-    if (updating) return
-    updating = true
-    try { await fn() } finally { updating = false }
-  }
+  // Repo → disk: retries if a write is in progress so no commit is ever dropped
+  let writingToDisk = false
+  let pendingDiskFlush = false
 
-  // Repo → disk: fires when a new commit lands (from peer, archive, or local commit)
-  repo.watch('fileSync:repo→disk', () => {
-    if (updating) return
-    const commit = repo.lastCommit
-    if (!commit) return
-    const files = repo.files
-    withLock(async () => {
+  async function flushToDisk () {
+    if (writingToDisk) { pendingDiskFlush = true; return }
+    writingToDisk = true
+    pendingDiskFlush = false
+    try {
+      const files = repo.files
+      if (!files) return
       const { files: current } = await readFolder(folder, accepts)
       if (filesEqual(current, files)) return
       const toDelete = Object.keys(current).filter(k => !(k in files))
       await writeToFolder(folder, files)
       await deleteFromFolder(folder, toDelete)
-    })
+    } finally {
+      writingToDisk = false
+      if (pendingDiskFlush) flushToDisk()
+    }
+  }
+
+  // Disk → repo: single-flight; filesystem events that arrive mid-commit are
+  // naturally re-triggered by the repo watch that follows the commit
+  let committingFromDisk = false
+
+  // Repo → disk: fires when a new commit lands (from peer, archive, or local commit)
+  repo.watch('fileSync:repo→disk', () => {
+    if (committingFromDisk) return
+    const commit = repo.lastCommit
+    if (!commit) return
+    flushToDisk()
   })
 
   // Disk → repo: fires when the filesystem changes
@@ -207,14 +218,20 @@ export async function fileSync (repo, folder = '.', dataDir = '.stream') {
     if (err) { console.error('fileSync watcher error:', err); return }
     const relevant = events.filter(e => accepts(relative(folder, e.path)))
     if (!relevant.length) return
-    withLock(async () => {
-      const { files: newFiles } = await readFolder(folder, accepts)
-      const current = repo.files ?? {}
-      if (filesEqual(current, newFiles)) return
-      const working = repo.checkout()
-      working.set(newFiles)
-      repo.commit(working, 'file change')
-    })
+    if (committingFromDisk) return
+    committingFromDisk = true
+    ;(async () => {
+      try {
+        const { files: newFiles } = await readFolder(folder, accepts)
+        const current = repo.files ?? {}
+        if (filesEqual(current, newFiles)) return
+        const working = repo.checkout()
+        working.set(newFiles)
+        repo.commit(working, 'file change')
+      } finally {
+        committingFromDisk = false
+      }
+    })()
   })
 
   return subscription
