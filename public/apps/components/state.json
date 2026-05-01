@@ -13,8 +13,8 @@
     "value": ""
   },
   "accordion": {
-    "title": "details",
-    "body": "This section can be expanded and collapsed. Its open state is stored in the stream alongside the component config.",
+    "title": "about",
+    "body": "Each change here is a commit. With --files, state.json on disk stays in sync with what you see. Every connected device is an equal author.",
     "open": false
   }
 }

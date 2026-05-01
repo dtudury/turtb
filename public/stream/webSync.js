@@ -40,14 +40,19 @@ export async function webSync (registry, primaryKeyHex, port, name, keyIteration
   // Write a single file to the primary stream's latest commit
   app.post('/api/file', async (req, res) => {
     try {
-      const { path, content } = req.body
+      const { path, content, message } = req.body
       if (typeof path !== 'string' || typeof content !== 'string') {
         return res.status(400).json({ error: 'path and content must be strings' })
       }
       const repo = await registry.open(primaryKeyHex)
       const working = repo.checkout()
-      working.set(path, content)
-      repo.commit(working, `edit ${path}`)
+      // Store JSON files as parsed objects so they round-trip cleanly with fileSync
+      let value = content
+      if (path.endsWith('.json')) {
+        try { value = JSON.parse(content) } catch {}
+      }
+      working.set(path, value)
+      repo.commit(working, message || `edit ${path}`)
       res.json({ ok: true })
     } catch (e) {
       res.status(500).json({ error: e.message })
