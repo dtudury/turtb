@@ -16,7 +16,7 @@ const KEY_BYTES = 33
  *   of this filter — the assumption is that if your own data references a repo
  *   you want it.
  *
- * @property {(keyHex: string, repo: import('./Repository.js').Repository, subscribe: (keyHex: string) => void) => void} [follow]
+ * @property {(keyHex: string, repo: import('./Repo.js').Repo, subscribe: (keyHex: string) => void) => void} [follow]
  *   Called reactively whenever a synced repository's value changes.  Use this
  *   to extract repository keys embedded in the data and call `subscribe(key)`
  *   on each one.  The registry will then sync that repo too, and `follow` will
@@ -73,7 +73,7 @@ const KEY_BYTES = 33
  * from content — no out-of-band catalog is needed.
  *
  * @param {WebSocket} ws
- * @param {import('./RepositoryRegistry.js').RepositoryRegistry} registry
+ * @param {import('./RepoRegistry.js').RepoRegistry} registry
  * @param {RegistrySyncOptions} [options]
  * @param {string} [label]  prefix for log messages
  */
@@ -256,7 +256,7 @@ export function handleRegistryPeer (ws, registry, options = {}, label = 'registr
  */
 
 /**
- * Connect a local RepositoryRegistry to a remote one and sync repositories.
+ * Connect a local RepoRegistry to a remote one and sync repositories.
  *
  * Sends `"registry"` as the WebSocket handshake, then negotiates which
  * repositories to sync via catalog/subscribe messages.  Returns a session
@@ -283,7 +283,7 @@ export function handleRegistryPeer (ws, registry, options = {}, label = 'registr
  *     }
  *   })
  *
- * @param {import('./RepositoryRegistry.js').RepositoryRegistry} registry
+ * @param {import('./RepoRegistry.js').RepoRegistry} registry
  * @param {string} host
  * @param {number} port
  * @param {RegistrySyncOptions} [options]

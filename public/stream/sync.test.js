@@ -1,5 +1,5 @@
 import { describe } from './utils/testing.js'
-import { RepositoryRegistry as StreamRegistry } from './RepositoryRegistry.js'
+import { RepoRegistry as StreamRegistry } from './RepoRegistry.js'
 import { outletSync } from './outletSync.js'
 import { originSync } from './originSync.js'
 

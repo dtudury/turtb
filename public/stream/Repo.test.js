@@ -1,9 +1,9 @@
 import { describe } from './utils/testing.js'
-import { Repository } from './Repository.js'
+import { Repo } from './Repo.js'
 
 describe(import.meta.url, ({ test }) => {
   test('commit stores message, date, and a reference to the data', ({ assert }) => {
-    const repo = new Repository()
+    const repo = new Repo()
     const working = repo.checkout()
     working.set({ a: 1 })
     const commitAddr = repo.commit(working, 'first commit')
@@ -15,7 +15,7 @@ describe(import.meta.url, ({ test }) => {
   })
 
   test('checkout starts with last committed value', ({ assert }) => {
-    const repo = new Repository()
+    const repo = new Repo()
     const working = repo.checkout()
     working.set({ a: 1 })
     repo.commit(working, 'first')
@@ -24,13 +24,13 @@ describe(import.meta.url, ({ test }) => {
   })
 
   test('checkout of empty repo returns empty stream', ({ assert }) => {
-    const repo = new Repository()
+    const repo = new Repo()
     const working = repo.checkout()
     assert.equal(working.byteLength, 0)
   })
 
   test('working stream modifications do not affect the repository', ({ assert }) => {
-    const repo = new Repository()
+    const repo = new Repo()
     const working = repo.checkout()
     working.set({ v: 1 })
     repo.commit(working, 'first')
@@ -41,7 +41,7 @@ describe(import.meta.url, ({ test }) => {
   })
 
   test('multiple commits produce a linked history via parent', ({ assert }) => {
-    const repo = new Repository()
+    const repo = new Repo()
     const working = repo.checkout()
     working.set({ v: 1 })
     repo.commit(working, 'first')
@@ -56,7 +56,7 @@ describe(import.meta.url, ({ test }) => {
   })
 
   test('first commit has no parent', ({ assert }) => {
-    const repo = new Repository()
+    const repo = new Repo()
     const working = repo.checkout()
     working.set({ x: 1 })
     repo.commit(working, 'root')
@@ -64,7 +64,7 @@ describe(import.meta.url, ({ test }) => {
   })
 
   test('unchanged data reuses the same address across commits', ({ assert }) => {
-    const repo = new Repository()
+    const repo = new Repo()
     const working = repo.checkout()
     working.set({ x: 42 })
     repo.commit(working, 'first')
@@ -75,7 +75,7 @@ describe(import.meta.url, ({ test }) => {
   })
 
   test('throws when working stream is empty', ({ assert }) => {
-    const repo = new Repository()
+    const repo = new Repo()
     const working = repo.checkout()
     assert.throws(() => repo.commit(working, 'nothing here'))
   })

@@ -16,7 +16,7 @@ import { handleRegistryPeer } from './registrySync.js'
  * dedup). Invalid signature chunks close the connection.
  *
  * @param {WebSocketServer} wss
- * @param {import('./StreamRegistry.js').StreamRegistry} registry
+ * @param {import('./RepoRegistry.js').RepoRegistry} registry
  * @param {string} [label]  prefix for log messages
  */
 export function attachStreamSync (wss, registry, label = 'ws') {
@@ -94,7 +94,7 @@ export function attachStreamSync (wss, registry, label = 'ws') {
 /**
  * Start a standalone WebSocket server that syncs streams from a StreamRegistry.
  *
- * @param {import('./StreamRegistry.js').StreamRegistry} registry
+ * @param {import('./RepoRegistry.js').RepoRegistry} registry
  * @param {number} port
  * @returns {WebSocketServer}
  */

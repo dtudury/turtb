@@ -1,11 +1,11 @@
 {
   "counter": {
     "label": "count",
-    "value": 0
+    "value": 7
   },
   "toggle": {
     "label": "enabled",
-    "value": false
+    "value": true
   },
   "textInput": {
     "label": "message",

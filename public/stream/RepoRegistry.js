@@ -1,53 +1,53 @@
 import { Stream } from './Stream.js'
-import { Repository } from './Repository.js'
+import { Repo } from './Repo.js'
 
 /**
- * Manages a collection of Repositories keyed by hex-encoded public key.
+ * Manages a collection of Repos keyed by hex-encoded public key.
  *
  * Accepts an optional factory function that is called whenever a new repository
  * is opened. The factory receives the publicKeyHex and should return a
- * (optionally async) Repository with whatever persistence or sync wired up.
+ * (optionally async) Repo with whatever persistence or sync wired up.
  *
- * If no factory is provided, plain in-memory Repositories are created.
+ * If no factory is provided, plain in-memory Repos are created.
  *
  * Examples:
  *
  *   // plain in-memory
- *   new RepositoryRegistry()
+ *   new RepoRegistry()
  *
  *   // archive-backed
- *   new RepositoryRegistry(async key => {
- *     const repo = new Repository()
+ *   new RepoRegistry(async key => {
+ *     const repo = new Repo()
  *     await archiveSync(repo, dataDir, key)
  *     return repo
  *   })
  *
  *   // S3-backed
- *   new RepositoryRegistry(async key => {
- *     const repo = new Repository()
+ *   new RepoRegistry(async key => {
+ *     const repo = new Repo()
  *     await s3Sync(repo, key, s3Config)
  *     return repo
  *   })
  */
-export class RepositoryRegistry {
+export class RepoRegistry {
   #streams = new Map()
   #factory
   #openCallbacks = new Set()
 
-  /** @param {(publicKeyHex: string) => Repository | Promise<Repository>} [factory] */
-  constructor (factory = () => new Repository()) {
+  /** @param {(publicKeyHex: string) => Repo | Promise<Repo>} [factory] */
+  constructor (factory = () => new Repo()) {
     this.#factory = factory
   }
 
   /**
-   * Return the Repository for `publicKeyHex`, creating it via the factory if
+   * Return the Repo for `publicKeyHex`, creating it via the factory if
    * this is the first call for that key.
    *
    * The repository is registered immediately (before the factory resolves) so
    * concurrent open() calls always return the same instance.
    *
    * @param {string} publicKeyHex
-   * @returns {Promise<Repository>}
+   * @returns {Promise<Repo>}
    */
   async open (publicKeyHex) {
     if (this.#streams.has(publicKeyHex)) return this.#streams.get(publicKeyHex)
@@ -61,26 +61,26 @@ export class RepositoryRegistry {
     return stream
   }
 
-  /** Register a callback invoked whenever a new repository is fully opened. */
+  /** Register a callback invoked whenever a new repo is fully opened. */
   onOpen (cb) { this.#openCallbacks.add(cb) }
 
   /** Remove a previously registered onOpen callback. */
   offOpen (cb) { this.#openCallbacks.delete(cb) }
 
   /**
-   * Return an already-open Repository, or undefined if not opened yet.
+   * Return an already-open Repo, or undefined if not opened yet.
    * @param {string} publicKeyHex
-   * @returns {Repository|undefined}
+   * @returns {Repo|undefined}
    */
   get (publicKeyHex) {
     const entry = this.#streams.get(publicKeyHex)
     return entry instanceof Stream ? entry : undefined
   }
 
-  /** Number of currently open (or opening) repositories. */
+  /** Number of currently open (or opening) repos. */
   get size () { return this.#streams.size }
 
-  /** Iterate over [publicKeyHex, Repository] pairs (only fully-opened). */
+  /** Iterate over [publicKeyHex, Repo] pairs (only fully-opened). */
   [Symbol.iterator] () {
     return (function * (map) {
       for (const [k, v] of map) {

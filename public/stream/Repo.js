@@ -17,7 +17,7 @@ import { Stream, changedPaths } from './Stream.js'
  * archives. checkout() returns a working Stream at any commit's dataAddress
  * for read-only inspection or direct use with the explicit commit() API.
  */
-export class Repository extends Stream {
+export class Repo extends Stream {
   /**
    * The latest commit record, or null if nothing has been committed yet.
    * Registers a reactive dependency on the commit log length.

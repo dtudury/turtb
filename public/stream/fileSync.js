@@ -144,7 +144,7 @@ function filesEqual (a, b) {
 }
 
 /**
- * Two-way sync between a folder and a Repository.
+ * Two-way sync between a folder and a Repo.
  *
  * Initial state (startup authority via timestamps):
  *   - repo has commits and no disk file is newer than the last commit → repo wins
@@ -154,7 +154,7 @@ function filesEqual (a, b) {
  *   - Repo changes (new commit from peer/archive) → write changed files to disk
  *   - Disk changes → checkout, update files, commit to repo
  *
- * @param {import('./Repository.js').Repository} repo
+ * @param {import('./Repo.js').Repo} repo
  * @param {string} [folder='.']
  * @param {string} [dataDir='.stream']
  * @returns {Promise<import('@parcel/watcher').AsyncSubscription>}
