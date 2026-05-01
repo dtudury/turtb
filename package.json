@@ -21,6 +21,7 @@
     "ws": "^8.18.3"
   },
   "scripts": {
+    "serve": "node scripts/serve.js",
     "app:browser": "./bin/stream.js --env-file public/apps/browser/.env.sample",
     "app:components": "./bin/stream.js --env-file public/apps/components/.env.sample"
   }
