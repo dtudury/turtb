@@ -46,9 +46,9 @@ common/               New reimplementation of core codec + hx template engine (a
 
 `Recaller` (`common/utils/Recaller.js`) is a fine-grained reactive dependency tracker. Functions registered with `recaller.watch(name, fn)` are automatically re-run when any data they accessed is mutated. Access is tracked via `reportKeyAccess(target, key, ...)` and mutations trigger re-runs via `reportKeyMutation(target, key, ...)`. Re-runs are batched via `nextTick` with loop detection (`loopLimit`). The `Turtle.byteLength` getter is wired into the recaller so watchers re-run when new data is appended.
 
-### hx — dynamic markup template engine
+### h — dynamic markup template engine
 
-`hx` (`common/hx.js`) is a tagged template literal function that parses HTML-like markup (including dynamic values interpolated as JS expressions) into a virtual DOM tree of `{ type, tag, attributes, children }` nodes. Void elements are handled. This is being actively reworked; `HxInput`, `HxElement`, `HxAttribute`, `HxTextNode` in `common/types/` are the new type classes replacing the old `dm.js`/DMAttribute/DMDescription approach.
+`h` (`common/h.js`) is a tagged template literal function that parses HTML-like markup (including dynamic values interpolated as JS expressions) into a virtual DOM tree of `{ type, tag, attributes, children }` nodes. Void elements are handled. This is being actively reworked; `HInput`, `HElement`, `HAttribute`, `HTextNode` in `common/types/` are the new type classes replacing the old `dm.js`/DMAttribute/DMDescription approach.
 
 ### Sync integrations (src/)
 
