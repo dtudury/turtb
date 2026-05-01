@@ -27,7 +27,7 @@ export function attachStreamSync (wss, registry, label = 'ws') {
       const handshake = rawHandshake.toString().trim()
 
       if (handshake === 'registry') {
-        handleRegistryPeer(ws, registry, () => true, label)
+        handleRegistryPeer(ws, registry, {}, label)
         return
       }
 

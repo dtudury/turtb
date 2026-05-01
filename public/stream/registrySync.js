@@ -7,30 +7,77 @@ import { hexToBytes, bytesToHex } from './utils.js'
 const KEY_BYTES = 33
 
 /**
+ * @typedef {Object} RegistrySyncOptions
+ *
+ * @property {(keyHex: string) => boolean} [filter]
+ *   Called for each key announced in the peer's catalog.  Return true to
+ *   subscribe (and start syncing) that repository.  Defaults to subscribing
+ *   to everything.  Keys discovered via `follow` are always subscribed regardless
+ *   of this filter — the assumption is that if your own data references a repo
+ *   you want it.
+ *
+ * @property {(keyHex: string, repo: import('./Repository.js').Repository, subscribe: (keyHex: string) => void) => void} [follow]
+ *   Called reactively whenever a synced repository's value changes.  Use this
+ *   to extract repository keys embedded in the data and call `subscribe(key)`
+ *   on each one.  The registry will then sync that repo too, and `follow` will
+ *   be called on it in turn — so discovery propagates through the graph.
+ *
+ *   Example — chat app where the chat repo lists participant keys:
+ *
+ *     follow: (keyHex, repo, subscribe) => {
+ *       for (const memberKey of repo.get('members') ?? []) subscribe(memberKey)
+ *     }
+ *
+ *   `subscribe` is idempotent and safe to call for already-synced repos.
+ */
+
+/**
  * Attach bidirectional multi-repository sync to an already-open WebSocket.
  *
- * Protocol (after the "registry" handshake):
- *   Text frames — JSON control messages:
- *     { type: "catalog", keys: ["hex1", "hex2", ...] }  announce available repos
- *     { type: "subscribe", key: "hex1" }                 request + offer sync for a key
+ * ## Protocol (after the "registry" text handshake)
  *
- *   Binary frames — [33-byte pubkey prefix][stream chunk]
- *     The prefix identifies which repository the chunk belongs to.
+ * ### Control messages — JSON text frames
  *
- * A "subscribe" message is bilateral: the sender will stream their copy of the
- * key to the peer AND expects the peer to stream back.  Both sides accept
- * incoming chunks via makeVerifiedWritableStream so only correctly-signed data
- * is accepted.
+ *   { "type": "catalog", "keys": ["hex1", "hex2", ...] }
+ *     Announce the full set of repositories this side currently has open.
+ *     Sent once on connect and again whenever a new repo is opened.
  *
- * @param {WebSocket} ws                    already-open WebSocket instance
+ *   { "type": "subscribe", "key": "hex1" }
+ *     Request to sync a repository bidirectionally.  The sender will stream
+ *     its copy of the repo to the peer AND expects the peer to stream back.
+ *     Both sides set up a makeVerifiedWritableStream for the key so only
+ *     correctly-signed chunks are accepted.
+ *
+ * ### Data frames — binary
+ *
+ *   [33 bytes: compressed secp256k1 public key][N bytes: stream chunk]
+ *
+ *     The 33-byte prefix identifies which repository the chunk belongs to
+ *     (secp256k1 keys always start with 0x02 or 0x03; JSON control messages
+ *     always start with 0x7B '{', so the two are unambiguous).
+ *     The chunk bytes are taken directly from makeReadableStream() and fed
+ *     directly into makeVerifiedWritableStream() on the other side.
+ *
+ * ## Discovery via `follow`
+ *
+ * When a `follow` function is provided, it is called via recaller.watch()
+ * whenever a synced repository's value changes.  Calling `subscribe(key)` inside
+ * `follow` causes that key to be synced too, and `follow` will be called on it
+ * in turn.  This lets a graph of related repositories be discovered organically
+ * from content — no out-of-band catalog is needed.
+ *
+ * @param {WebSocket} ws
  * @param {import('./RepositoryRegistry.js').RepositoryRegistry} registry
- * @param {(keyHex: string) => boolean} [filter]  return true to subscribe to a key
- * @param {string} [label]                  prefix for log messages
+ * @param {RegistrySyncOptions} [options]
+ * @param {string} [label]  prefix for log messages
  */
-export function handleRegistryPeer (ws, registry, filter = () => true, label = 'registry') {
+export function handleRegistryPeer (ws, registry, options = {}, label = 'registry') {
+  const { filter = () => true, follow = null } = options
+
   const readers = new Map()        // keyHex → ReadableStreamDefaultReader (we → peer)
   const writers = new Map()        // keyHex → WritableStreamDefaultWriter (peer → us)
   const pendingChunks = new Map()  // keyHex → Uint8Array[] (buffered while writer opens)
+  const followFns = new Map()      // keyHex → fn registered with recaller.watch
 
   function sendJson (msg) {
     if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg))
@@ -84,6 +131,15 @@ export function handleRegistryPeer (ws, registry, filter = () => true, label = '
       for (const chunk of pending) {
         writer.write(chunk).catch(e => handleWriteError(keyHex, e))
       }
+    }
+
+    // Content-driven discovery: watch this repo's value and subscribe to any
+    // keys the `follow` callback extracts from it.  Runs immediately (to catch
+    // existing data) and re-runs whenever the repo's value changes.
+    if (follow && !followFns.has(keyHex)) {
+      const fn = () => follow(keyHex, repo, key => subscribeToKey(key))
+      followFns.set(keyHex, fn)
+      repo.recaller.watch(`registry-follow:${keyHex}`, fn)
     }
   }
 
@@ -142,6 +198,9 @@ export function handleRegistryPeer (ws, registry, filter = () => true, label = '
   function cleanup () {
     registry.offOpen(onNewRepo)
     for (const reader of readers.values()) reader.cancel().catch(() => {})
+    for (const [keyHex, fn] of followFns) {
+      registry.get(keyHex)?.recaller.unwatch(fn)
+    }
   }
 
   ws.on('close', cleanup)
@@ -152,24 +211,54 @@ export function handleRegistryPeer (ws, registry, filter = () => true, label = '
 }
 
 /**
- * Connect a local RegistryRegistry to a remote one and sync repositories.
+ * Connect a local RepositoryRegistry to a remote one and sync repositories.
  *
- * Sends "registry" as the handshake (instead of a single hex key), then
- * negotiates which repositories to sync via catalog/subscribe messages.
+ * Sends `"registry"` as the WebSocket handshake (instead of a single hex key),
+ * then negotiates which repositories to sync via catalog/subscribe messages.
+ *
+ * ### Basic usage — sync everything
+ *
+ *   const ws = await registrySync(myRegistry, 'localhost', 8080)
+ *
+ * ### Catalog filter — subscribe only to specific repos
+ *
+ *   const ws = await registrySync(myRegistry, 'localhost', 8080, {
+ *     filter: key => key === myKeyHex
+ *   })
+ *
+ * ### Content-driven discovery — follow repo references
+ *
+ * If a repo's value contains keys pointing to other repos, pass a `follow`
+ * function and the registry will automatically sync those referenced repos:
+ *
+ *   const ws = await registrySync(myRegistry, 'localhost', 8080, {
+ *     filter: key => key === rootChatKey,
+ *     follow: (keyHex, repo, subscribe) => {
+ *       // The chat repo stores a list of participant keys in repo.get('members')
+ *       for (const memberKey of repo.get('members') ?? []) subscribe(memberKey)
+ *     }
+ *   })
+ *
+ * The `follow` callback is called reactively: any time a synced repo's value
+ * changes, `follow` re-runs for that repo.  Calling `subscribe(key)` inside
+ * `follow` is idempotent — already-synced repos are skipped.
+ *
+ * Discovery propagates: once a referenced repo is synced, `follow` will also
+ * be called on it, so chains of references are followed automatically.
  *
  * @param {import('./RepositoryRegistry.js').RepositoryRegistry} registry
  * @param {string} host
  * @param {number} port
- * @param {(keyHex: string) => boolean} [filter]  return true to subscribe to a key
+ * @param {RegistrySyncOptions} [options]
  * @returns {Promise<WebSocket>}  resolves when the connection is open and sync has started
  */
-export function registrySync (registry, host, port, filter = () => true) {
+export function registrySync (registry, host, port, options = {}) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`ws://${host}:${port}`)
 
     ws.on('open', () => {
       ws.send('registry')
-      handleRegistryPeer(ws, registry, filter, 'origin-registry')
+      handleRegistryPeer(ws, registry, options, 'origin-registry')
       resolve(ws)
     })
 

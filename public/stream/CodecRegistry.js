@@ -132,23 +132,6 @@ export class CodecRegistry extends Addressifier {
    */
   copyFrom (source, address) {
     if (address < 0) return address // universal: same footer in any registry
-    const code = source.resolve(address)
-    const existing = this.addressOf(code)
-    if (existing !== undefined) return existing
-    const refs = source.asRefs(address)
-    if (Array.isArray(refs)) {
-      const copied = refs.map(a => this.copyFrom(source, a))
-      const newCode = this.encode(copied, true)
-      return this.addressOf(newCode) ?? this.append(newCode)
-    }
-    if (refs !== null && typeof refs === 'object') {
-      const copied = Object.fromEntries(
-        Object.entries(refs).map(([k, v]) => [k, this.copyFrom(source, v)])
-      )
-      const newCode = this.encode(copied, true)
-      return this.addressOf(newCode) ?? this.append(newCode)
-    }
-    // Leaf primitive: decode from source, re-encode here
     const value = source.decode(address)
     const newCode = this.encode(value)
     return this.addressOf(newCode) ?? this.append(newCode)
