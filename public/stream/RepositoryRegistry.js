@@ -32,6 +32,7 @@ import { Repository } from './Repository.js'
 export class RepositoryRegistry {
   #streams = new Map()
   #factory
+  #openCallbacks = new Set()
 
   /** @param {(publicKeyHex: string) => Repository | Promise<Repository>} [factory] */
   constructor (factory = () => new Repository()) {
@@ -56,8 +57,15 @@ export class RepositoryRegistry {
     const stream = await this.#factory(publicKeyHex)
     this.#streams.set(publicKeyHex, stream)
     resolve(stream)
+    for (const cb of this.#openCallbacks) cb(publicKeyHex, stream)
     return stream
   }
+
+  /** Register a callback invoked whenever a new repository is fully opened. */
+  onOpen (cb) { this.#openCallbacks.add(cb) }
+
+  /** Remove a previously registered onOpen callback. */
+  offOpen (cb) { this.#openCallbacks.delete(cb) }
 
   /**
    * Return an already-open Repository, or undefined if not opened yet.

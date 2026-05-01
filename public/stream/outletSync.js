@@ -1,5 +1,6 @@
 import { WebSocketServer } from 'ws'
 import { hexToBytes } from './utils.js'
+import { handleRegistryPeer } from './registrySync.js'
 
 /**
  * Attach the stream sync protocol to an existing WebSocketServer.
@@ -23,7 +24,14 @@ export function attachStreamSync (wss, registry, label = 'ws') {
     let reader = null
 
     ws.once('message', async rawHandshake => {
-      const publicKeyHex = rawHandshake.toString().trim()
+      const handshake = rawHandshake.toString().trim()
+
+      if (handshake === 'registry') {
+        handleRegistryPeer(ws, registry, () => true, label)
+        return
+      }
+
+      const publicKeyHex = handshake
 
       // Buffer any data frames that arrive while we're opening the stream,
       // so nothing is dropped during the async gap after the handshake.

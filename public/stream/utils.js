@@ -1,4 +1,13 @@
 /**
+ * Encode a Uint8Array as a lowercase hex string.
+ * @param {Uint8Array} bytes
+ * @returns {string}
+ */
+export function bytesToHex (bytes) {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+/**
  * Decode a hex string to a Uint8Array.
  * @param {string} hex
  * @returns {Uint8Array}
